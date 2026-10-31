@@ -1,0 +1,89 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Certificat de transfert - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4><i class="fas fa-exchange-alt me-2"></i> Certificat de transfert</h4>
+    <div>
+        <button onclick="window.print()" class="btn btn-secondary btn-sm"><i class="fas fa-print"></i> Imprimer</button>
+        <a href="{% url 'fondamental:certificat_transfert_pdf' certificat.id %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Télécharger en PDF
+        </a>
+        <a href="{% url 'fondamental:fiche_suivi_second_cycle_preview' eleve.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-table"></i> Voir la fiche de suivi
+        </a>
+        <a href="{% url 'fondamental:certificat_transfert_dossier_complet_pdf' certificat.id %}" class="btn btn-success btn-sm">
+            <i class="fas fa-file-pdf"></i> Télécharger le dossier complet (2 pages)
+        </a>
+        <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour au dossier
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body certificat-container">
+        <div class="row mb-3">
+            <div class="col-6">
+                {{ ecole.ministere }}<br>
+                ******************************<br>
+                {{ ecole.academie|default:"" }}<br>
+                ******************************<br>
+                {{ ecole.circonscription|default:"" }}
+            </div>
+            <div class="col-6 text-end">
+                {{ ecole.republique }}<br>
+                {{ ecole.devise }}
+            </div>
+        </div>
+
+        <h3 class="text-center fw-bold my-4">{{ ecole.nom }}</h3>
+        <h4 class="text-center fw-bold mb-5">Certificat de Transfert</h4>
+
+        <p>Le Directeur de la {{ ecole.nom }} soussigné certifie que l'élève : <strong><u>{{ eleve.prenomEleve }} {{ eleve.nomEleve|upper }}</u></strong></p>
+        <p>Né(e) le : <strong><u>{{ eleve.dateNaiss|date:"d/m/Y" }}</u></strong> à <strong><u>{{ eleve.lieuNaiss }}</u></strong></p>
+        <p>Fils(Fille) de : <strong><u>{{ eleve.pere|default:"Non renseigné" }}</u></strong> et de : <strong><u>{{ eleve.mere|default:"Non renseigné" }}</u></strong></p>
+        <p>A fréquenté ledit établissement de <strong><u>{{ annee_debut }}</u></strong> au <strong><u>{{ annee_fin }}</u></strong></p>
+        <p>Sous le numéro matricule / Mle : <strong><u>{{ eleve.matricule }}</u></strong> où il(elle) était en classe de : <strong><u>{{ inscription.classe.get_nomClasse_display }}</u></strong></p>
+
+        <table class="table table-bordered text-center mt-4" style="font-size: 0.85rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>Travail</th><th>Conduite</th><th>Nombre d'années<br>de scolarité</th>
+                    <th>Classes<br>doublées</th><th>Décisions des<br>conseils de maîtres</th>
+                    <th>Motifs du<br>transfert</th><th>École de<br>destination</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{ certificat.travail|default:"" }}</td>
+                    <td>{{ certificat.conduite|default:"" }}</td>
+                    <td>{{ eleve.scolarite_totale }} ans</td>
+                    <td>{{ classes_doublees }}</td>
+                    <td>{{ certificat.decision_conseil_maitres|default:"" }}</td>
+                    <td>{{ certificat.motif_transfert|default:"" }}</td>
+                    <td>{{ certificat.ecole_destination|default:"" }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="mt-4">Avis du Directeur du CAP (s'agissant d'un élève du second cycle) :</p>
+        <div style="height: 2.5cm;"></div>
+
+        <div class="text-end mt-4">
+            <p>Fait à {{ ecole.ville|default:"" }}, le {{ certificat.date_delivrance|date:"d/m/Y" }}</p>
+            <p>Le Directeur de l'école</p>
+        </div>
+
+        <p class="small fst-italic mt-5">
+            NB : Le présent certificat sert uniquement pour l'admission provisoire de l'élève.
+            L'inscription définitive n'intervient qu'après la réception du dossier scolaire.
+        </p>
+    </div>
+</div>
+
+<style>
+@media print { .no-print { display: none !important; } }
+</style>
+{% endblock %}

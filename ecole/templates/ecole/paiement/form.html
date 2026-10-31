@@ -1,0 +1,526 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier le paiement{% else %}Nouveau paiement{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+
+            <!-- EN-TÊTE -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    {% if form.instance.pk %}
+                        Modifier le paiement
+                    {% else %}
+                        Nouveau paiement
+                    {% endif %}
+                </h4>
+                <a href="{% url 'fondamental:paiement_list' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Retour à la liste
+                </a>
+            </div>
+
+            <!-- INFO MODES DE L'ÉCOLE -->
+            {% if ecole %}
+            <div class="alert alert-info d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <strong><i class="fas fa-info-circle me-1"></i> Modes de paiement actifs :</strong>
+                    Frais d'inscription → <span class="badge bg-primary">{{ ecole.get_mode_frais_inscription_display }}</span>
+                    &nbsp;|&nbsp;
+                    Scolarité → <span class="badge bg-success">{{ ecole.get_mode_frais_scolarite_display }}</span>
+                    {% if ecole.mode_frais_scolarite == 'tranches' %}
+                        <span class="badge bg-secondary">{{ ecole.nombre_tranches }} tranches</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- FORMULAIRE -->
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" novalidate id="paiementForm">
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- ============================================ -->
+                        <!-- 1. RECHERCHE DE L'ÉLÈVE                       -->
+                        <!-- ============================================ -->
+                        <h6 class="text-muted border-bottom pb-2 mb-3">
+                            <i class="fas fa-user-graduate me-1"></i> 1. Élève
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.annee_scolaire_filter.id_for_label }}" class="form-label">
+                                    Année scolaire
+                                </label>
+                                {{ form.annee_scolaire_filter }}
+                                {% if form.annee_scolaire_filter.errors %}
+                                    <div class="text-danger small">{{ form.annee_scolaire_filter.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="col-md-6 mb-3 position-relative">
+                                <label for="{{ form.recherche_inscription.id_for_label }}" class="form-label">
+                                    Rechercher un élève
+                                </label>
+                                {{ form.recherche_inscription }}
+                                <small class="text-muted">Tapez au moins 2 caractères</small>
+
+                                <!-- ✅ Liste déroulante des résultats AJAX -->
+                                <div id="resultatsRecherche"
+                                     class="list-group position-absolute w-100 shadow"
+                                     style="z-index: 1050; display: none; max-height: 320px; overflow-y: auto;">
+                                </div>
+
+                                {% if form.recherche_inscription.errors %}
+                                    <div class="text-danger small">{{ form.recherche_inscription.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Champ caché : inscription sélectionnée -->
+                        {{ form.inscription }}
+                        {% if form.inscription.errors %}
+                            <div class="text-danger small mb-2">{{ form.inscription.errors }}</div>
+                        {% endif %}
+
+                        <!-- Carte info élève (remplie par JS) -->
+                        <div id="infoEleve" class="alert alert-success d-none mb-3">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-user-check fa-2x me-3 text-success"></i>
+                                <div class="flex-grow-1">
+                                    <strong id="infoNom"></strong><br>
+                                    <small>
+                                        Matricule : <span id="infoMatricule"></span> —
+                                        Classe : <span id="infoClasse"></span> —
+                                        Cycle : <span id="infoCycle"></span>
+                                    </small>
+                                </div>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger align-self-start"
+                                        id="btnRetirerEleve"
+                                        title="Changer d'élève">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- 2. TYPE DE PAIEMENT                           -->
+                        <!-- ============================================ -->
+                        <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-tags me-1"></i> 2. Type de paiement
+                        </h6>
+
+                        <div class="form-check form-switch mb-3">
+                            {{ form.est_inscription }}
+                            <label class="form-check-label" for="{{ form.est_inscription.id_for_label }}">
+                                <strong>{{ form.est_inscription.label }}</strong>
+                                <small class="text-muted d-block">
+                                    Cocher pour payer les frais d'inscription (non applicable cette année si mode "unique" et déjà payés)
+                                </small>
+                            </label>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- 3. MONTANT + ÉCHÉANCE                         -->
+                        <!-- ============================================ -->
+                        <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-coins me-1"></i> 3. Montant
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.montant.id_for_label }}" class="form-label">
+                                    {{ form.montant.label }} <span class="text-danger">*</span>
+                                </label>
+                                {{ form.montant }}
+                                {% if form.montant.errors %}
+                                    <div class="text-danger small">{{ form.montant.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Champ MOIS : visible seulement en mode mensuel -->
+                            <div class="col-md-6 mb-3" id="blocMois">
+                                <label for="{{ form.mois.id_for_label }}" class="form-label">
+                                    {{ form.mois.label }}
+                                </label>
+                                {{ form.mois }}
+                                {% if form.mois.errors %}
+                                    <div class="text-danger small">{{ form.mois.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Champ caché : année paiement -->
+                        {{ form.annee_paiement }}
+
+                        <!-- ============================================ -->
+                        <!-- 4. OBSERVATION                                -->
+                        <!-- ============================================ -->
+                        <div class="mb-3">
+                            <label for="{{ form.observation.id_for_label }}" class="form-label">
+                                {{ form.observation.label }}
+                            </label>
+                            {{ form.observation }}
+                            {% if form.observation.errors %}
+                                <div class="text-danger small">{{ form.observation.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <!-- BOUTONS -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{% url 'fondamental:paiement_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% if form.instance.pk %}Enregistrer{% else %}Enregistrer le paiement{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPT : RECHERCHE AJAX + ADAPTATION AU MODE                  -->
+<!-- ============================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ============================================================
+    // VARIABLES DJANGO
+    // ============================================================
+    const modeScolarite   = "{{ ecole.mode_frais_scolarite|default:'mensuel' }}";
+    const modeInscription = "{{ ecole.mode_frais_inscription|default:'annuel' }}";
+    const prefillEstInscription = {{ prefill_est_inscription|yesno:"true,false" }};
+    const prefillInscriptionId  = "{{ prefill_inscription_id|default:'' }}";
+
+    const urlApiRechercheInscriptions = "{% url 'fondamental:api_recherche_inscriptions' %}";
+    const urlApiClasseInfo            = "{% url 'fondamental:api_classe_info' %}";
+
+    // ============================================================
+    // RÉFÉRENCES
+    // ============================================================
+    const blocMois            = document.getElementById('blocMois');
+    const moisSelect          = document.getElementById('{{ form.mois.id_for_label }}');
+    const checkInscription    = document.getElementById('{{ form.est_inscription.id_for_label }}');
+    const inputMontant        = document.getElementById('{{ form.montant.id_for_label }}');
+    const champRecherche      = document.getElementById('{{ form.recherche_inscription.id_for_label }}');
+    const hiddenInscription   = document.getElementById('{{ form.inscription.id_for_label }}');
+    const infoEleve           = document.getElementById('infoEleve');
+    const resultatsRecherche  = document.getElementById('resultatsRecherche');
+    const btnRetirerEleve     = document.getElementById('btnRetirerEleve');
+
+    // ✅ Map JS indexée pour éviter l'injection HTML via data-*
+    const inscriptionsDataMap = {};
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function cacherResultats() {
+        if (resultatsRecherche) {
+            resultatsRecherche.style.display = 'none';
+            resultatsRecherche.innerHTML = '';
+        }
+    }
+
+    // ============================================================
+    // ✅ AFFICHER/CHACHER LE CHAMP MOIS
+    // ============================================================
+    function majChampMois() {
+        if (!blocMois || !moisSelect || !checkInscription) return;
+
+        if (modeScolarite === 'mensuel' && !checkInscription.checked) {
+            blocMois.style.display = '';
+            moisSelect.required = true;
+        } else {
+            blocMois.style.display = 'none';
+            moisSelect.required = false;
+        }
+    }
+
+    majChampMois();
+    if (checkInscription) {
+        checkInscription.addEventListener('change', majChampMois);
+    }
+
+    // ============================================================
+    // ✅ AFFICHER INFO INSCRIPTION
+    // ============================================================
+    function afficherInfoInscription(ins) {
+        // Remplir le champ caché
+        if (hiddenInscription) hiddenInscription.value = ins.id;
+
+        // Remplir la barre de recherche
+        if (champRecherche) champRecherche.value = ins.display;
+
+        // Remplir la carte info
+        const elNom       = document.getElementById('infoNom');
+        const elMatricule = document.getElementById('infoMatricule');
+        const elClasse    = document.getElementById('infoClasse');
+        const elCycle     = document.getElementById('infoCycle');
+
+        if (elNom)       elNom.textContent = ins.eleve || '—';
+        if (elMatricule) elMatricule.textContent = ins.matricule || '—';
+        if (elClasse)    elClasse.textContent = ins.classe || '—';
+        if (elCycle)     elCycle.textContent = ins.cycle === '1er' ? '1er Cycle' : '2e Cycle';
+
+        if (infoEleve) infoEleve.classList.remove('d-none');
+
+        // Vider le montant (sera pré-rempli par l'appel classe_info)
+        if (inputMontant) inputMontant.value = '';
+
+        // Charger les frais
+        fetch(`${urlApiClasseInfo}?inscription=${ins.id}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success && inputMontant && !inputMontant.value) {
+                    if (checkInscription && checkInscription.checked) {
+                        inputMontant.value = data.frais_inscription || 0;
+                    } else {
+                        inputMontant.value = data.montant_echeance || 0;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur chargement frais :', error);
+            });
+
+        // Cacher les résultats
+        cacherResultats();
+    }
+
+    function retirerEleve() {
+        if (hiddenInscription) hiddenInscription.value = '';
+        if (champRecherche) champRecherche.value = '';
+        if (inputMontant) inputMontant.value = '';
+        if (infoEleve) infoEleve.classList.add('d-none');
+        cacherResultats();
+    }
+
+    // ============================================================
+    // ✅ AFFICHER LES RÉSULTATS DE RECHERCHE
+    // ============================================================
+    function afficherResultats(inscriptions) {
+        if (!resultatsRecherche) return;
+
+        if (!inscriptions || inscriptions.length === 0) {
+            resultatsRecherche.innerHTML = `
+                <div class="list-group-item text-center text-muted py-3">
+                    <i class="fas fa-search me-2"></i>
+                    Aucun élève trouvé
+                </div>
+            `;
+            resultatsRecherche.style.display = 'block';
+            return;
+        }
+
+        // Nettoyer la map
+        Object.keys(inscriptionsDataMap).forEach(k => delete inscriptionsDataMap[k]);
+
+        let html = '';
+        inscriptions.forEach((ins, idx) => {
+            const key = `ins_${idx}`;
+            inscriptionsDataMap[key] = ins;
+
+            const eleveSafe     = escapeHtml(ins.eleve || '');
+            const matriculeSafe = escapeHtml(ins.matricule || '—');
+            const classeSafe    = escapeHtml(ins.classe || '—');
+            const cycleSafe     = escapeHtml(ins.cycle === '1er' ? '1er Cycle' : '2e Cycle');
+
+            html += `
+                <button type="button"
+                        class="list-group-item list-group-item-action resultat-item"
+                        data-ins-key="${key}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${eleveSafe}</strong>
+                            <br>
+                            <small class="text-muted">
+                                <code>${matriculeSafe}</code>
+                                | ${classeSafe}
+                                | ${cycleSafe}
+                            </small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                </button>
+            `;
+        });
+
+        resultatsRecherche.innerHTML = html;
+        resultatsRecherche.style.display = 'block';
+
+        // ✅ Attacher les événements avec protection
+        resultatsRecherche.querySelectorAll('.resultat-item').forEach(item => {
+            item.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const ins = inscriptionsDataMap[this.dataset.insKey];
+                if (ins) afficherInfoInscription(ins);
+            });
+        });
+    }
+
+    // ============================================================
+    // ✅ RECHERCHE AJAX (avec debounce)
+    // ============================================================
+    let timer = null;
+
+    if (champRecherche) {
+        champRecherche.addEventListener('input', function () {
+            clearTimeout(timer);
+            const q = this.value.trim();
+
+            // Réinitialiser si on modifie manuellement
+            if (hiddenInscription) hiddenInscription.value = '';
+            if (infoEleve) infoEleve.classList.add('d-none');
+
+            if (q.length < 2) {
+                cacherResultats();
+                return;
+            }
+
+            timer = setTimeout(() => {
+                fetch(`${urlApiRechercheInscriptions}?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            // ✅ Auto-sélection si un seul résultat
+                            if (data.inscriptions && data.inscriptions.length === 1) {
+                                afficherInfoInscription(data.inscriptions[0]);
+                            } else {
+                                afficherResultats(data.inscriptions || []);
+                            }
+                        } else {
+                            afficherResultats([]);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur recherche inscriptions :', error);
+                        cacherResultats();
+                    });
+            }, 300);
+        });
+    }
+
+    // ============================================================
+    // ✅ FERMER LA LISTE AU CLIC EXTÉRIEUR
+    // ============================================================
+    document.addEventListener('click', function (e) {
+        if (e.target.closest && e.target.closest('.resultat-item')) return;
+        if (e.target === champRecherche) return;
+        if (resultatsRecherche && resultatsRecherche.contains(e.target)) return;
+
+        cacherResultats();
+    });
+
+    // ============================================================
+    // ✅ BOUTON RETIRER ÉLÈVE
+    // ============================================================
+    if (btnRetirerEleve) {
+        btnRetirerEleve.addEventListener('click', function (e) {
+            e.preventDefault();
+            retirerEleve();
+        });
+    }
+
+    // ============================================================
+    // ✅ PRÉ-REMPLISSAGE DEPUIS L'URL (?inscription=5)
+    // ============================================================
+    if (prefillInscriptionId) {
+        fetch(`${urlApiClasseInfo}?inscription=${prefillInscriptionId}`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const elNom       = document.getElementById('infoNom');
+                    const elMatricule = document.getElementById('infoMatricule');
+                    const elClasse    = document.getElementById('infoClasse');
+                    const elCycle     = document.getElementById('infoCycle');
+
+                    // L'API renvoie maintenant eleve_nom, matricule, classe_nom et cycle
+                    if (elNom)       elNom.textContent = data.eleve_nom || '—';
+                    if (elMatricule) elMatricule.textContent = data.matricule || '—';
+                    if (elClasse)    elClasse.textContent = data.classe_nom || '—';
+                    if (elCycle)     elCycle.textContent = data.cycle === '1er' ? '1er Cycle' : '2e Cycle';
+
+                    // Remplir le champ de recherche et le champ caché
+                    if (champRecherche && !champRecherche.value) {
+                        champRecherche.value = `${data.matricule} - ${data.eleve_nom} (${data.classe_nom})`;
+                    }
+                    if (hiddenInscription && !hiddenInscription.value) {
+                        hiddenInscription.value = prefillInscriptionId;
+                    }
+
+                    if (infoEleve) infoEleve.classList.remove('d-none');
+
+                    // Pré-remplir le montant
+                    if (inputMontant && !inputMontant.value) {
+                        if (checkInscription && checkInscription.checked) {
+                            inputMontant.value = data.frais_inscription || 0;
+                        } else {
+                            inputMontant.value = data.montant_echeance || 0;
+                        }
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Erreur pré-remplissage :', error);
+            });
+    }
+
+    // ============================================================
+    // ✅ SUGGESTION MONTANT QUAND ON CHANGE DE TYPE
+    // ============================================================
+    if (checkInscription) {
+        checkInscription.addEventListener('change', function () {
+            // Quand on coche/décoche, on recharge le montant suggéré
+            if (hiddenInscription && hiddenInscription.value) {
+                fetch(`${urlApiClasseInfo}?inscription=${hiddenInscription.value}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && inputMontant) {
+                            if (checkInscription.checked) {
+                                inputMontant.value = data.frais_inscription || 0;
+                            } else {
+                                inputMontant.value = data.montant_echeance || 0;
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Erreur suggestion montant :', error));
+            }
+        });
+    }
+
+});
+</script>
+{% endblock %}

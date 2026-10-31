@@ -1,0 +1,37 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Confirmer la suppression{% endblock %}
+
+{% block content %}
+<div class="delete-confirm">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">⚠️ Confirmation de suppression</h5>
+        </div>
+        <div class="card-body">
+            <p>
+                Êtes-vous sûr de vouloir supprimer le paiement de
+                <strong>{{ object.inscription.eleve.nomEleve }} {{ object.inscription.eleve.prenomEleve }}</strong>
+                {% if object.est_inscription %}
+                    (frais d'inscription {{ object.annee_paiement }})
+                {% else %}
+                    ({{ object.get_mois_display }} {{ object.annee_paiement }})
+                {% endif %}
+                — <strong>{{ object.montant|floatformat:0 }} FCFA</strong> ?
+            </p>
+            <p class="text-danger"><small>Cette action est irréversible !</small></p>
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                    <a href="{% url 'fondamental:paiement_list' %}{% if request.GET.cycle %}?cycle={{ request.GET.cycle }}{% endif %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

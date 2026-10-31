@@ -1,0 +1,158 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Dossiers scolaires{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-folder-open me-2"></i>
+        Dossiers scolaires
+        <span class="badge bg-primary ms-2">{{ total }}</span>
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-secondary{% endif %} ms-1">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:dashboard' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:dossiers_scolaires_index' %}?cycle=1er">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:dossiers_scolaires_index' %}?cycle=2e">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:dossiers_scolaires_index' %}">
+            <i class="fas fa-list me-1"></i> Tous
+        </a>
+    </li>
+</ul>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Rechercher un élève..."
+                           value="{{ search }}">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.idClasse }}" {% if classe_id == c.idClasse|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select name="annee" class="form-select">
+                    <option value="">Toutes les années</option>
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}" {% if annee_id == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste -->
+<div class="card">
+    <div class="card-body">
+        {% if inscriptions %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead>
+                    <tr>
+                        <th>Matricule</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        {% if not cycle_filtre %}<th>Cycle</th>{% endif %}
+                        <th>Année</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inscription in inscriptions %}
+                    <tr>
+                        <td><span class="badge bg-secondary">{{ inscription.eleve.matricule }}</span></td>
+                        <td>
+                            <strong>{{ inscription.eleve.nomEleve }}</strong>
+                            {{ inscription.eleve.prenomEleve }}
+                        </td>
+                        <td>{{ inscription.classe.nomClasse }}</td>
+                        {% if not cycle_filtre %}
+                        <td>
+                            <span class="badge {% if inscription.classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                {{ inscription.classe.cycle }}
+                            </span>
+                        </td>
+                        {% endif %}
+                        <td>{{ inscription.anneeScolaire.anneeScolaire }}</td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:dossier_scolaire_eleve' inscription.eleve.id %}"
+                                   class="btn btn-dark" title="Ouvrir le dossier">
+                                    <i class="fas fa-folder-open"></i> Dossier
+                                </a>
+                                <a href="{% url 'fondamental:eleve_detail' inscription.eleve.id %}"
+                                   class="btn btn-info" title="Fiche élève">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="{% if not cycle_filtre %}6{% else %}5{% endif %}">
+                            <strong>Total : {{ total }} dossier{{ total|pluralize }}</strong>
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-4">
+            <i class="fas fa-info-circle fa-2x mb-3 text-muted"></i>
+            <p class="mb-0">Aucun élève trouvé avec ces critères.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

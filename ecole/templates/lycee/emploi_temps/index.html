@@ -1,0 +1,212 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Emplois du temps (Lycée){% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-calendar-alt me-2"></i>
+        Emplois du temps — Lycée
+        {% if annee_encours %}<span class="badge bg-primary ms-2">{{ annee_encours }}</span>{% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:plage_lycee_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-clock"></i> Plages horaires
+        </a>
+        {% if annee_encours %}
+        <a href="{% url 'lycee:emploi_temps_lycee_tous_pdf' annee_encours %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Exporter tous
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filtre année -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">Année scolaire</label>
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    {% for a in annees_scolaires %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if annee_selectionnee and a.idAnneeScolaire == annee_selectionnee.idAnneeScolaire %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Niveau</label>
+                <select name="niveau" class="form-select" onchange="this.form.submit()">
+                    <option value="">Tous les niveaux</option>
+                    <option value="10" {% if niveau_filtre == '10' %}selected{% endif %}>10ème Année</option>
+                    <option value="11" {% if niveau_filtre == '11' %}selected{% endif %}>11ème Année</option>
+                    <option value="12" {% if niveau_filtre == '12' %}selected{% endif %}>Terminale</option>
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not annee_encours %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Aucune année scolaire enregistrée. Créez-en une d'abord.
+</div>
+{% else %}
+
+<!-- Légende -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Vert</strong> = emploi du temps créé •
+    <strong>Gris</strong> = pas encore d'emploi du temps •
+    Cliquez sur une classe pour ouvrir la grille
+</div>
+
+<!-- 10ème Année -->
+{% if classes_10 %}
+<div class="card mb-3">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 10ème Année
+            <span class="badge bg-light text-dark ms-2">
+                {{ classes_10|length }} classe{{ classes_10|length|pluralize }}
+            </span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for item in classes_10 %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'lycee:emploi_temps_lycee_gestion' item.classe.id_classe annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100 {% if item.emploi_temps %}border-success{% endif %}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x mb-2
+                                {% if item.emploi_temps %}text-success{% else %}text-muted{% endif %}"></i>
+                            <h5 class="mb-1">{{ item.classe.nom }}</h5>
+                            <small class="text-muted d-block mb-2">
+                                {{ item.classe.get_niveau_display }}
+                                {% if item.classe.serie %} — {{ item.classe.get_serie_display }}{% endif %}
+                            </small>
+                            {% if item.emploi_temps %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i>
+                                {{ item.emploi_temps.nb_creneaux_remplis }} créneau{{ item.emploi_temps.nb_creneaux_remplis|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non créé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- 11ème Année -->
+{% if classes_11 %}
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 11ème Année
+            <span class="badge bg-light text-dark ms-2">
+                {{ classes_11|length }} classe{{ classes_11|length|pluralize }}
+            </span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for item in classes_11 %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'lycee:emploi_temps_lycee_gestion' item.classe.id_classe annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100 {% if item.emploi_temps %}border-success{% endif %}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x mb-2
+                                {% if item.emploi_temps %}text-success{% else %}text-muted{% endif %}"></i>
+                            <h5 class="mb-1">{{ item.classe.nom }}</h5>
+                            <small class="text-muted d-block mb-2">
+                                {{ item.classe.get_niveau_display }}
+                                {% if item.classe.serie %} — {{ item.classe.get_serie_display }}{% endif %}
+                            </small>
+                            {% if item.emploi_temps %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i>
+                                {{ item.emploi_temps.nb_creneaux_remplis }} créneau{{ item.emploi_temps.nb_creneaux_remplis|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non créé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Terminale -->
+{% if classes_12 %}
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-user-graduate me-2"></i> Terminale
+            <span class="badge bg-light text-dark ms-2">
+                {{ classes_12|length }} classe{{ classes_12|length|pluralize }}
+            </span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            {% for item in classes_12 %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'lycee:emploi_temps_lycee_gestion' item.classe.id_classe annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100 {% if item.emploi_temps %}border-success{% endif %}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x mb-2
+                                {% if item.emploi_temps %}text-success{% else %}text-muted{% endif %}"></i>
+                            <h5 class="mb-1">{{ item.classe.nom }}</h5>
+                            <small class="text-muted d-block mb-2">
+                                {{ item.classe.get_niveau_display }}
+                                {% if item.classe.serie %} — {{ item.classe.get_serie_display }}{% endif %}
+                            </small>
+                            {% if item.emploi_temps %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i>
+                                {{ item.emploi_temps.nb_creneaux_remplis }} créneau{{ item.emploi_temps.nb_creneaux_remplis|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non créé</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not classes_10 and not classes_11 and not classes_12 %}
+<div class="alert alert-info text-center py-4">
+    <i class="fas fa-info-circle fa-2x mb-3"></i>
+    <p>Aucune classe du lycée enregistrée.</p>
+    <a href="{% url 'lycee:classe_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Créer une classe
+    </a>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

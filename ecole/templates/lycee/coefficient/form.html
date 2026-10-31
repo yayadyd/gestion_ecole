@@ -1,0 +1,102 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouveau{% endif %} coefficient{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-balance-scale me-2"></i>
+        {% if form.instance.pk %}
+            Modifier le coefficient
+        {% else %}
+            Nouveau coefficient
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:coefficient_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Matière <span class="text-danger">*</span>
+                            </label>
+                            {{ form.matiere }}
+                            {% if form.matiere.errors %}
+                                <div class="text-danger small">{{ form.matiere.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Coefficient <span class="text-danger">*</span>
+                            </label>
+                            {{ form.coefficient }}
+                            <small class="text-muted d-block">Entre 0.5 et 10.</small>
+                            {% if form.coefficient.errors %}
+                                <div class="text-danger small">{{ form.coefficient.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Niveau <span class="text-danger">*</span>
+                            </label>
+                            {{ form.niveau }}
+                            {% if form.niveau.errors %}
+                                <div class="text-danger small">{{ form.niveau.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Série</label>
+                            {{ form.serie }}
+                            <small class="text-muted d-block">
+                                Laisser vide pour la <strong>10ème Année</strong> (Commune Générale).
+                            </small>
+                            {% if form.serie.errors %}
+                                <div class="text-danger small">{{ form.serie.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mt-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Rappel :</strong>
+                        <ul class="mb-0 mt-2">
+                            <li><strong>10ème</strong> : pas de série (CG)</li>
+                            <li><strong>11ème</strong> : séries L, SES, S</li>
+                            <li><strong>Terminale</strong> : séries TLL, TAL, TSS, TSEco, TSExp, TSE</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'lycee:coefficient_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,75 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Dossier scolaire - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-folder-open me-2"></i>
+        Dossier scolaire
+        <small class="text-muted">{{ eleve.nomEleve }} {{ eleve.prenomEleve }}</small>
+    </h4>
+    <a href="{% url 'fondamental:eleve_detail' eleve.id %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3"><strong>Matricule :</strong> {{ eleve.matricule }}</div>
+            <div class="col-md-3"><strong>Nom :</strong> {{ eleve.nomEleve }}</div>
+            <div class="col-md-3"><strong>Prénom :</strong> {{ eleve.prenomEleve }}</div>
+            <div class="col-md-3"><strong>Naissance :</strong> {{ eleve.dateNaiss|date:"d/m/Y" }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">Documents disponibles par année scolaire</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Année scolaire</th>
+                        <th>Classe</th>
+                        <th class="text-center">Documents</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inscription in inscriptions %}
+                    <tr>
+                        <td>{{ inscription.anneeScolaire.anneeScolaire }}</td>
+                        <td>
+                            {{ inscription.classe.nomClasse }}
+                            <span class="badge {% if inscription.classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-1">
+                                {{ inscription.classe.get_cycle_display }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:certificat_frequentation' eleve.id inscription.anneeScolaire.anneeScolaire %}"
+                                   class="btn btn-info">
+                                    <i class="fas fa-file-alt"></i> Certificat de fréquentation
+                                </a>
+                                <a href="{% url 'fondamental:certificat_transfert_form' eleve.id inscription.anneeScolaire.anneeScolaire %}"
+                                   class="btn btn-warning">
+                                    <i class="fas fa-exchange-alt"></i> Certificat de transfert
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">Aucune inscription trouvée pour cet élève.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,274 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Paiements{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-money-bill-wave me-2"></i>
+        Paiements
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'fondamental:paiements_annee_scolaire' annee_encours %}" class="btn btn-info btn-sm">
+            <i class="fas fa-calendar-alt"></i> Vue annuelle
+        </a>
+        <a href="{% url 'fondamental:suivi_paiements_par_classe' %}" class="btn btn-info btn-sm">
+            <i class="fas fa-chart-line"></i> Suivi par classe
+        </a>
+        <a href="{% url 'fondamental:paiement_create' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-plus"></i> Nouveau paiement
+        </a>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ✅ NOUVEAU : Bandeau info sur les modes de l'école           -->
+<!-- ============================================================ -->
+{% if ecole %}
+<div class="alert alert-light border d-flex flex-wrap gap-3 align-items-center mb-3 py-2">
+    <div class="small">
+        <i class="fas fa-file-invoice text-primary me-1"></i>
+        <strong>Inscription :</strong>
+        <span class="badge bg-primary">{{ libelle_mode_inscription }}</span>
+    </div>
+    <div class="small">
+        <i class="fas fa-graduation-cap text-success me-1"></i>
+        <strong>Scolarité :</strong>
+        <span class="badge bg-success">{{ libelle_mode_scolarite }}</span>
+        {% if mode_frais_scolarite == 'tranches' %}
+            <span class="badge bg-secondary">{{ nombre_tranches }} tranches</span>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:paiement_list' %}?cycle=1er">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:paiement_list' %}?cycle=2e">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:paiement_list' %}">
+            <i class="fas fa-list me-1"></i> Tous
+        </a>
+    </li>
+</ul>
+
+<!-- ============================================================ -->
+<!-- Filtres                                                       -->
+<!-- ============================================================ -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+
+            <div class="col-md-{% if mode_frais_scolarite == 'mensuel' %}3{% else %}4{% endif %}">
+                <select name="annee" class="form-select">
+                    <option value="">Toutes les années</option>
+                    {% for as in annees_scolaires %}
+                    <option value="{{ as.anneeScolaire }}" {% if request.GET.annee == as.anneeScolaire %}selected{% endif %}>
+                        {{ as.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- ✅ FIX : champ "Mois" uniquement en mode mensuel -->
+            {% if mode_frais_scolarite == 'mensuel' %}
+            <div class="col-md-3">
+                <select name="mois" class="form-select">
+                    <option value="">Tous les mois</option>
+                    {% for m, nom in mois_choices %}
+                    <option value="{{ m }}" {% if request.GET.mois|add:"0" == m %}selected{% endif %}>
+                        {{ nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            <div class="col-md-{% if mode_frais_scolarite == 'mensuel' %}3{% else %}4{% endif %}">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.idClasse }}" {% if request.GET.classe|add:"0" == c.idClasse %}selected{% endif %}>
+                        {{ c.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-{% if mode_frais_scolarite == 'mensuel' %}3{% else %}4{% endif %}">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Cycle</th>
+                        <th>Montant</th>
+                        <th>Type / Échéance</th>
+                        <th>Date paiement</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paiement in paiements %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'fondamental:paiement_eleve_annee' paiement.inscription.eleve.id annee_encours %}">
+                                {{ paiement.inscription.eleve }}
+                            </a>
+                        </td>
+                        <td>{{ paiement.inscription.classe.nomClasse }}</td>
+                        <td>
+                            <span class="badge {% if paiement.inscription.classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                {{ paiement.inscription.classe.get_cycle_display }}
+                            </span>
+                        </td>
+                        <td><strong>{{ paiement.montant|floatformat:0 }} FCFA</strong></td>
+                        <td>
+                            {% if paiement.est_inscription %}
+                                {# ---- Frais d'inscription ---- #}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-file-invoice"></i> Inscription {{ paiement.annee_paiement }}
+                                </span>
+
+                            {% elif mode_frais_scolarite == 'mensuel' and paiement.mois %}
+                                {# ---- Mensualité ---- #}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-calendar-day"></i>
+                                    {{ paiement.get_mois_display }} {{ paiement.annee_paiement }}
+                                </span>
+
+                            {% elif mode_frais_scolarite == 'trimestriel' %}
+                                {# ---- Trimestriel : on affiche juste le type ---- #}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-calendar-week"></i> Trimestre
+                                </span>
+
+                            {% elif mode_frais_scolarite == 'tranches' %}
+                                {# ---- Tranches ---- #}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-layer-group"></i> Tranche
+                                </span>
+
+                            {% elif mode_frais_scolarite == 'annuel' %}
+                                {# ---- Annuel ---- #}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-calendar-alt"></i> Année complète
+                                </span>
+
+                            {% elif mode_frais_scolarite == 'unique' %}
+                                {# ---- Unique ---- #}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-infinity"></i> Cursus complet
+                                </span>
+
+                            {% else %}
+                                {# ---- Fallback ---- #}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-money-bill"></i> Scolarité
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:paiement_update' paiement.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'fondamental:paiement_delete' paiement.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucun paiement enregistré
+                            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if paiements %}
+                <tfoot>
+                    <tr class="table-dark">
+                        <td colspan="3" class="text-end"><strong>Total général :</strong></td>
+                        <td><strong>{{ total_general|floatformat:0 }} FCFA</strong></td>
+                        <td colspan="3"></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

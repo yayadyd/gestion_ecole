@@ -1,0 +1,384 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Paiements {{ annee_scolaire }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+
+    <!-- ============================================================ -->
+    <!-- EN-TÊTE                                                       -->
+    <!-- ============================================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h4 class="mb-0">
+            <i class="fas fa-calendar-alt me-2"></i>
+            Paiements {{ annee_scolaire }}
+            <small class="text-muted">
+                — Total : <strong>{{ total_general|floatformat:0 }} FCFA</strong>
+            </small>
+        </h4>
+        <form method="get">
+            <select name="annee" class="form-select form-select-sm"
+                    onchange="window.location.href='{% url 'fondamental:paiements_annee_scolaire' 'ANNEE' %}'.replace('ANNEE', this.value)">
+                {% for a in annees_scolaires %}
+                    <option value="{{ a.anneeScolaire }}"
+                            {% if a.anneeScolaire == annee_scolaire %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- BANDEAU INFO MODE                                             -->
+    <!-- ============================================================ -->
+    <div class="alert alert-light border d-flex flex-wrap gap-3 align-items-center mb-3 py-2">
+        <div class="small">
+            <i class="fas fa-info-circle text-primary me-1"></i>
+            <strong>Mode de scolarité :</strong>
+            <span class="badge bg-primary">{{ mode_frais_scolarite }}</span>
+        </div>
+        <div class="small">
+            <i class="fas fa-file-invoice text-success me-1"></i>
+            <strong>Frais d'inscription :</strong>
+            <span class="badge bg-success">{{ mode_frais_inscription }}</span>
+        </div>
+        <div class="small text-muted ms-auto">
+            <i class="fas fa-mouse-pointer"></i>
+            Cliquez sur une cellule pour voir le détail
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- GRAPHIQUE                                                     -->
+    <!-- ============================================================ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">
+                <i class="fas fa-chart-bar me-1"></i>
+                Évolution mensuelle par classe — 12 mois (Sept → Août)
+            </h6>
+        </div>
+        <div class="card-body">
+            <canvas id="chartPaiements" height="90"></canvas>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TABLEAU PAR CLASSE                                            -->
+    <!-- ============================================================ -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-table me-1"></i>
+                Détail par classe — 12 mois de l'année scolaire
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0" id="tableauPaiements">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="min-width:120px;">Classe</th>
+                            <th class="text-center" style="min-width:60px;">Élèves</th>
+                            {% for num, nom, an, label in mois_liste %}
+                                <th class="text-end" style="font-size:0.7rem; min-width:70px;">
+                                    {{ nom }}<br>
+                                    <small class="text-muted">{{ an }}</small>
+                                </th>
+                            {% endfor %}
+                            <th class="text-end" style="min-width:100px;">TOTAL</th>
+                            <th class="text-end" style="min-width:90px;">Moy./élève</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in resultats %}
+                        <tr>
+                            <td>
+                                <strong>{{ r.classe.nomClasse }}</strong>
+                                <br>
+                                <small class="badge bg-secondary">
+                                    {{ r.classe.cycle }} cycle
+                                </small>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-info">{{ r.nb_eleves }}</span>
+                            </td>
+                            {% for pm in r.paiements_mensuels_liste %}
+                                <td class="text-end paiement-cell"
+                                    data-classe="{{ r.classe.idClasse|stringformat:'d' }}"
+                                    data-classe-nom="{{ r.classe.nomClasse }}"
+                                    data-mois="{{ pm.mois|stringformat:'d' }}"
+                                    data-mois-nom="{{ pm.nom }}"
+                                    data-annee="{{ pm.annee|stringformat:'d' }}"
+                                    style="cursor: {% if pm.total %}pointer{% else %}default{% endif %};">
+                                    {% if pm.total %}
+                                        {{ pm.total|floatformat:0 }}
+                                    {% else %}
+                                        —
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                            <td class="text-end fw-bold text-primary">
+                                {{ r.total|floatformat:0 }} FCFA
+                            </td>
+                            <td class="text-end">
+                                <small class="text-muted">
+                                    {{ r.moyenne_par_eleve|floatformat:0 }} FCFA
+                                </small>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="16" class="text-center text-muted py-4">
+                                Aucune donnée
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-primary">
+                        <tr>
+                            <th colspan="2">TOTAL GÉNÉRAL</th>
+                            {% for t in totaux_par_mois %}
+                                <th class="text-end" style="font-size:0.75rem;">
+                                    {% if t is not None %}
+    {{ t|floatformat:0 }}
+{% else %}
+    —
+{% endif %}
+                                </th>
+                            {% endfor %}
+                            <th class="text-end">{{ total_general|floatformat:0 }} FCFA</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL : DÉTAIL DES PAIEMENTS D'UN MOIS                       -->
+<!-- ============================================================ -->
+<div class="modal fade" id="modalDetailPaiements" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-list me-1"></i>
+                    <span id="modalTitre">Détail des paiements</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalLoading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2 text-muted">Chargement...</p>
+                </div>
+                <div id="modalContent" style="display:none;">
+                    <!-- Rempli par JS -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="me-auto">
+                    <strong>Total : <span id="modalTotal">—</span></strong>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPTS                                                       -->
+<!-- ============================================================ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ============================================================
+    // 1. GRAPHIQUE
+    // ============================================================
+    const labels = {{ graph_labels_json|safe }};
+    const datasets = {{ graph_datasets_json|safe }};
+
+    const couleurs = [
+        '#0d6efd', '#198754', '#dc3545', '#ffc107', '#0dcaf0',
+        '#6f42c1', '#d63384', '#fd7e14', '#20c997', '#6610f2',
+        '#17a2b8', '#fd7e14', '#e83e8c', '#6f42c1', '#20c997',
+        '#0dcaf0', '#198754', '#dc3545',
+    ];
+
+    datasets.forEach((ds, i) => {
+        ds.backgroundColor = couleurs[i % couleurs.length];
+        ds.borderColor = couleurs[i % couleurs.length];
+        ds.borderWidth = 1;
+    });
+
+    if (datasets.length > 0) {
+        new Chart(document.getElementById('chartPaiements'), {
+            type: 'bar',
+            data: { labels: labels, datasets: datasets },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                return context.dataset.label + ' : ' +
+                                    context.parsed.y.toLocaleString('fr-FR') + ' FCFA';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: false },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                return value.toLocaleString('fr-FR');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    // 2. CLIC SUR CELLULE → MODAL DÉTAIL
+    // ============================================================
+    const modalElement = document.getElementById('modalDetailPaiements');
+    const modal = new bootstrap.Modal(modalElement);
+    const modalTitre = document.getElementById('modalTitre');
+    const modalLoading = document.getElementById('modalLoading');
+    const modalContent = document.getElementById('modalContent');
+    const modalTotal = document.getElementById('modalTotal');
+
+    document.querySelectorAll('.paiement-cell').forEach(cell => {
+    cell.addEventListener('click', function () {
+        // ✅ Nettoyage : supprime tout caractère non numérique
+        const classeId = String(this.dataset.classe || '').replace(/\D/g, '');
+        const classeNom = this.dataset.classeNom || '';
+        const mois = String(this.dataset.mois || '').replace(/\D/g, '');
+        const moisNom = this.dataset.moisNom || '';
+        const annee = String(this.dataset.annee || '').replace(/\D/g, '');
+
+        // Si pas de paiement, ne rien faire
+        const contenu = this.textContent.trim();
+        if (contenu === '—') return;
+
+        // ✅ Vérification de sécurité
+        if (!classeId || !mois || !annee) {
+            console.error('Paramètres invalides :', {
+                classeId, mois, annee,
+                raw: {
+                    classe: this.dataset.classe,
+                    mois: this.dataset.mois,
+                    annee: this.dataset.annee,
+                }
+            });
+            return;
+        }
+
+            // Titre
+            modalTitre.textContent = `${classeNom} — ${moisNom} ${annee}`;
+
+            // Ouvrir le modal + loading
+            modalTitre.textContent = `${classeNom} — ${moisNom} ${annee}`;
+            modalLoading.style.display = 'block';
+            modalContent.style.display = 'none';
+            modalTotal.textContent = '—';
+            modal.show();
+
+            // Appel API
+            const url = `{% url 'fondamental:api_detail_paiements_mois' %}?classe=${classeId}&mois=${mois}&annee=${annee}`;
+
+            fetch(url)
+                .then(r => r.json())
+                .then(data => {
+                    modalLoading.style.display = 'none';
+
+                    if (!data.success) {
+                        modalContent.innerHTML = `
+                            <div class="alert alert-danger">
+                                Erreur : ${data.error}
+                            </div>
+                        `;
+                        modalContent.style.display = 'block';
+                        return;
+                    }
+
+                    // Construire le tableau
+                    let html = `
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Élève</th>
+                                        <th>Type</th>
+                                        <th>Mois scolaire</th>
+                                        <th class="text-end">Montant</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                    `;
+
+                    data.paiements.forEach(p => {
+                        const badgeType = p.est_inscription
+                            ? '<span class="badge bg-primary">Inscription</span>'
+                            : '<span class="badge bg-success">Scolarité</span>';
+
+                        const moisScolaire = p.mois_scolaire
+                            ? `<span class="badge bg-secondary">${p.mois_scolaire}</span>`
+                            : '<span class="text-muted">—</span>';
+
+                        html += `
+                            <tr>
+                                <td>${p.date}</td>
+                                <td>
+                                    <strong>${p.eleve}</strong>
+                                    <br>
+                                    <small class="text-muted">${p.matricule}</small>
+                                </td>
+                                <td>${badgeType}</td>
+                                <td>${moisScolaire}</td>
+                                <td class="text-end">${p.montant.toLocaleString('fr-FR')} FCFA</td>
+                            </tr>
+                        `;
+                    });
+
+                    html += `
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+
+                    modalContent.innerHTML = html;
+                    modalContent.style.display = 'block';
+
+                    modalTotal.textContent = data.total.toLocaleString('fr-FR') + ' FCFA';
+                })
+                .catch(error => {
+                    modalLoading.style.display = 'none';
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            Erreur réseau : ${error.message}
+                        </div>
+                    `;
+                    modalContent.style.display = 'block';
+                });
+        });
+    });
+});
+</script>
+
+{% endblock %}

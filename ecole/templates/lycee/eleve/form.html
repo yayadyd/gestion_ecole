@@ -1,0 +1,212 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouvel{% endif %} élève{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-user-graduate me-2"></i>
+        {% if form.instance.pk %}
+            Modifier : {{ form.instance.nom }} {{ form.instance.prenom }}
+        {% else %}
+            Nouvel élève du lycée
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:eleve_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+{% if form.instance.pk %}
+<div class="alert alert-info">
+    <i class="fas fa-lock me-1"></i>
+    <strong>Matricule :</strong> <code>{{ form.instance.matricule }}</code>
+    <small class="d-block mt-1">
+        Le matricule ne peut pas être modifié après la création.
+    </small>
+</div>
+{% endif %}
+
+<form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- Colonne gauche -->
+        <div class="col-lg-6">
+
+            <!-- Identité -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0"><i class="fas fa-id-card me-1"></i> Identité</h6>
+                </div>
+                <div class="card-body">
+
+                    <!-- ✅ Champ matricule - SAISIE MANUELLE -->
+                    <div class="mb-3">
+                        <label class="form-label">
+                            Matricule <span class="text-danger">*</span>
+                        </label>
+                        {{ form.matricule }}
+                        <small class="text-muted d-block">
+                            Saisi manuellement. Unique et permanent.
+                        </small>
+                        {% if form.matricule.errors %}
+                            <div class="text-danger small mt-1">{{ form.matricule.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Prénom <span class="text-danger">*</span></label>
+                            {{ form.prenom }}
+                            {% if form.prenom.errors %}
+                                <div class="text-danger small">{{ form.prenom.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nom <span class="text-danger">*</span></label>
+                            {{ form.nom }}
+                            {% if form.nom.errors %}
+                                <div class="text-danger small">{{ form.nom.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sexe <span class="text-danger">*</span></label>
+                            {{ form.sexe }}
+                            {% if form.sexe.errors %}
+                                <div class="text-danger small">{{ form.sexe.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Date de naissance <span class="text-danger">*</span></label>
+                            {{ form.date_naissance }}
+                            {% if form.date_naissance.errors %}
+                                <div class="text-danger small">{{ form.date_naissance.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Lieu de naissance <span class="text-danger">*</span></label>
+                        {{ form.lieu_naissance }}
+                        {% if form.lieu_naissance.errors %}
+                            <div class="text-danger small">{{ form.lieu_naissance.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Photo</label>
+                        {{ form.photo }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provenance (DEF) -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6 class="mb-0"><i class="fas fa-school me-1"></i> Provenance (DEF)</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">École de provenance</label>
+                        {{ form.ecole_provenance }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Année du DEF</label>
+                        {{ form.annee_def }}
+                        {% if form.annee_def.errors %}
+                            <div class="text-danger small">{{ form.annee_def.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Colonne droite -->
+        <div class="col-lg-6">
+
+            <!-- Filiation -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0"><i class="fas fa-users me-1"></i> Filiation</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nom du père</label>
+                        {{ form.pere }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nom de la mère</label>
+                        {{ form.mere }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Contact du tuteur</label>
+                        {{ form.contact_tuteur }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Adresse</label>
+                        {{ form.adresse }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Acte de naissance -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0"><i class="fas fa-file-alt me-1"></i> Acte de naissance</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Numéro de l'acte</label>
+                        {{ form.numero_acte_naissance }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date de délivrance</label>
+                        {{ form.date_delivrance_acte }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Statut -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-user-tag me-1"></i> Statut scolaire</h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label">Statut <span class="text-danger">*</span></label>
+                        {{ form.statut }}
+                        <small class="text-muted d-block mt-2">
+                            <strong>Orienté</strong> : l'État prend en charge les frais.<br>
+                            <strong>Payant</strong> : les frais sont à la charge des parents.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end gap-2 mt-3">
+        <a href="{% url 'lycee:eleve_list' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-times"></i> Annuler
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save"></i> Enregistrer
+        </button>
+    </div>
+
+</form>
+
+{% endblock %}

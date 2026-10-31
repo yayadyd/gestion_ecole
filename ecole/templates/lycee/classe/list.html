@@ -1,0 +1,167 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Classes du Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-chalkboard me-2"></i> Classes du Lycée
+        <span class="badge bg-primary ms-2">{{ classes|length }}</span>
+        {% if annee_filtre %}
+            <span class="badge bg-info ms-1">
+                <i class="fas fa-calendar-alt me-1"></i> Filtré sur l'année
+            </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <!-- ✅ NOUVEAU BOUTON DE COPIE -->
+        {% if annee_precedente and has_classes_precedentes %}
+        <a href="{% url 'lycee:classe_dupliquer' annee_precedente.idAnneeScolaire %}" 
+           class="btn btn-outline-warning"
+           onclick="return confirm('Voulez-vous copier toutes les classes et leurs matières depuis l\'année {{ annee_precedente.anneeScolaire }} ?');">
+            <i class="fas fa-copy"></i> Copier de {{ annee_precedente.anneeScolaire }}
+        </a>
+        {% endif %}
+        
+        <a href="{% url 'lycee:eleve_list_filtered' %}" class="btn btn-outline-info">
+            <i class="fas fa-filter"></i> Liste filtrée des élèves
+        </a>
+        <a href="{% url 'lycee:classe_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle classe
+        </a>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <!-- ✅ Filtre Année -->
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Année scolaire</label>
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if annee_filtre == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtre Niveau -->
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Niveau</label>
+                <select name="niveau" class="form-select" onchange="this.form.submit()">
+                    <option value="">Tous les niveaux</option>
+                    {% for code, libelle in niveaux %}
+                    <option value="{{ code }}" {% if niveau_filtre == code %}selected{% endif %}>
+                        {{ libelle }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Bouton Réinitialiser -->
+            <div class="col-md-4">
+                <a href="{% url 'lycee:classe_list' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-sync-alt"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des classes -->
+<div class="row g-3">
+    {% for classe in classes %}
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chalkboard me-1"></i> {{ classe.nom }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <span class="badge bg-secondary">{{ classe.get_niveau_display }}</span>
+                    {% if classe.serie %}
+                        <span class="badge bg-info">{{ classe.get_serie_display }}</span>
+                    {% else %}
+                        <span class="badge bg-light text-dark">CG</span>
+                    {% endif %}
+                </p>
+                <p class="mb-2 small">
+                    <i class="fas fa-calendar me-1"></i> {{ classe.annee_scolaire.anneeScolaire }}
+                </p>
+                
+                <!-- ✅ CORRECTION ICI : Affichage du bon nombre d'élèves -->
+                <p class="mb-2 small">
+                    <i class="fas fa-user-graduate me-1"></i>
+                    <strong>{{ classe.nb_eleves_affiche }}</strong>
+                    élève{{ classe.nb_eleves_affiche|pluralize }}
+                    {% if annee_filtre %}<span class="text-muted">(année filtrée)</span>{% endif %}
+                </p>
+                
+                <hr class="my-2">
+                <p class="mb-1 small">
+                    <i class="fas fa-money-bill-wave me-1"></i>
+                    <strong>Inscription :</strong> {{ classe.frais_inscription|floatformat:0 }} FCFA
+                </p>
+                <p class="mb-3 small">
+                    <i class="fas fa-graduation-cap me-1"></i>
+                    <strong>Scolarité :</strong> {{ classe.frais_scolarite|floatformat:0 }} FCFA/an
+                </p>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'lycee:eleve_list_filtered' %}?classe={{ classe.id_classe }}&annee={{ classe.annee_scolaire.idAnneeScolaire }}"
+                    class="btn btn-sm btn-info" title="Voir les élèves">
+                        <i class="fas fa-users"></i> Élèves
+                    </a>
+                        <!-- ✅ FORMULAIRE (remplace le input-group actuel) -->
+                    <form method="get" 
+                        action="{% url 'lycee:carte_lycee_classe_pdf' classe.pk annee_filtre %}" 
+                        class="d-flex gap-1">
+                        <input type="hidden" name="couleur" value="#6f42c1">
+                        <select name="fond" class="form-select form-select-sm" style="width: 110px; font-size: 0.75rem;">
+                            <option value="fond_blanc.jpg">Fond blanc</option>
+                            <option value="carte_scolaire1.jpg">Fond 1</option>
+                            <option value="carte_scolaire2.jpg">Fond 2</option>
+                            <option value="carte_scolaire3.jpg">Fond 3</option>
+                            <option value="carte_scolaire4.jpg">Fond 4</option>
+                        </select>
+                        <button type="submit" class="btn btn-sm btn-danger" title="Générer les cartes">
+                            <i class="fas fa-id-card"></i>
+                        </button>
+                    </form>
+                    
+                    <a href="{% url 'lycee:matiere_classe_lycee_list' %}?classe={{ classe.id_classe }}"
+                    class="btn btn-sm btn-outline-primary" title="Matières de cette classe">
+                        <i class="fas fa-book"></i>
+                    </a>
+                    
+                    <a href="{% url 'lycee:classe_update' classe.pk %}" class="btn btn-sm btn-warning" title="Modifier">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    
+                    <a href="{% url 'lycee:classe_delete' classe.pk %}" class="btn btn-sm btn-danger" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center py-4">
+            <i class="fas fa-info-circle fa-2x mb-3"></i>
+            <p class="mb-2">Aucune classe enregistrée pour ces critères.</p>
+            <a href="{% url 'lycee:classe_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Créer une classe
+            </a>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

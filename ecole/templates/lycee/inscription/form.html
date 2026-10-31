@@ -1,0 +1,401 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} inscription{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-user-plus me-2"></i>
+        {% if form.instance.pk %}
+            Modifier l'inscription
+        {% else %}
+            Nouvelle inscription au lycée
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:inscription_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" novalidate id="inscriptionForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- ============================================ -->
+            <!-- 1. ÉLÈVE (RECHERCHE AJAX)                    -->
+            <!-- ============================================ -->
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+                <i class="fas fa-user-graduate me-1"></i> 1. Élève
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.classe.id_for_label }}" class="form-label">
+                        Classe <span class="text-danger">*</span>
+                    </label>
+                    {{ form.classe }}
+                    {% if form.classe.errors %}
+                        <div class="text-danger small">{{ form.classe.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.annee_scolaire.id_for_label }}" class="form-label">
+                        Année scolaire <span class="text-danger">*</span>
+                    </label>
+                    {{ form.annee_scolaire }}
+                    {% if form.annee_scolaire.errors %}
+                        <div class="text-danger small">{{ form.annee_scolaire.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Champ de recherche d'élève -->
+            <div class="mb-3 position-relative">
+                <label for="{{ form.recherche_eleve.id_for_label }}" class="form-label">
+                    Rechercher un élève <span class="text-danger">*</span>
+                </label>
+                {{ form.recherche_eleve }}
+                <small class="text-muted">Tapez au moins 2 caractères (nom, prénom ou matricule)</small>
+
+                <!-- Liste déroulante des résultats AJAX -->
+                <div id="resultatsRecherche"
+                     class="list-group position-absolute w-100 shadow-sm"
+                     style="z-index: 1050; display: none; max-height: 300px; overflow-y: auto;">
+                </div>
+
+                {% if form.recherche_eleve.errors %}
+                    <div class="text-danger small">{{ form.recherche_eleve.errors }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Champ caché : élève sélectionné -->
+            {{ form.eleve }}
+            {{ form.eleve_id }}
+            {% if form.eleve.errors %}
+                <div class="text-danger small mb-2">{{ form.eleve.errors }}</div>
+            {% endif %}
+
+            <!-- Carte info élève (remplie par JS) -->
+            <div id="infoEleve" class="alert alert-secondary {% if not form.instance.pk %}d-none{% endif %} mb-3">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-user-circle fa-2x me-3 text-primary"></i>
+                    <div class="flex-grow-1">
+                        <strong id="infoNom">
+                            {% if form.instance.pk %}{{ form.instance.eleve.nom }} {{ form.instance.eleve.prenom }}{% endif %}
+                        </strong>
+                        <br>
+                        <small>
+                            Matricule : <span id="infoMatricule">{% if form.instance.pk %}{{ form.instance.eleve.matricule }}{% endif %}</span> —
+                            Né(e) le : <span id="infoDateNaiss">{% if form.instance.pk %}{{ form.instance.eleve.date_naissance|date:"d/m/Y" }}{% endif %}</span> —
+                            Lieu : <span id="infoLieuNaiss">{% if form.instance.pk %}{{ form.instance.eleve.lieu_naissance }}{% endif %}</span>
+                        </small>
+                        <div id="alerteDejaInscrit" class="mt-2 d-none">
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Déjà inscrit cette année
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger align-self-start"
+                            id="btnRetirerEleve"
+                            title="Retirer cet élève">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 2. CAS PARTICULIER                            -->
+            <!-- ============================================ -->
+            <div class="card border-warning mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-1"></i> Cas particulier
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="form-check">
+                        {{ form.frais_inscription_historique }}
+                        <label class="form-check-label" for="{{ form.frais_inscription_historique.id_for_label }}">
+                            <strong>Frais d'inscription déjà payés (avant l'application)</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Cocher si l'élève a déjà payé ses frais d'inscription
+                        avant l'utilisation de cette application.
+                    </small>
+                </div>
+            </div>
+
+            <!-- BOUTONS -->
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <a href="{% url 'lycee:inscription_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const champRecherche = document.getElementById('rechercheEleve');
+    const champEleveCache = document.getElementById('eleveId');
+    const champEleveSelect = document.getElementById('eleveSelect');
+    const infoEleve = document.getElementById('infoEleve');
+    const alerteDejaInscrit = document.getElementById('alerteDejaInscrit');
+    const resultatsRecherche = document.getElementById('resultatsRecherche');
+    const btnRetirerEleve = document.getElementById('btnRetirerEleve');
+
+    const urlApiRecherche = "{% url 'lycee:api_recherche_eleves' %}";
+    const urlApiClasses = "{% url 'lycee:api_classes_par_annee' 0 %}".replace('0', '%7B0%7D');
+
+    // ✅ Filtre automatique des classes selon l'année scolaire sélectionnée.
+    // Les classes affichées sont celles qui ont au moins une inscription
+    // pour l'année donnée (une classe peut exister plusieurs années).
+    const selectAnnee = document.getElementById('{{ form.annee_scolaire.id_for_label }}');
+    const selectClasse = document.getElementById('{{ form.classe.id_for_label }}');
+
+    if (selectAnnee && selectClasse) {
+        // ✅ Préserver la classe actuelle (pour les modifications) avant filtrage.
+        // `classeCourante` est mis à jour à chaque appel de chargerClasses.
+        let classeCourante = selectClasse.value;
+
+        function chargerClasses(anneeId) {
+            if (!anneeId) {
+                selectClasse.innerHTML = '<option value="">— Sélectionnez d\'abord l\'année —</option>';
+                classeCourante = '';
+                return;
+            }
+
+            fetch(`${urlApiClasses.replace('%7B0%7D', anneeId)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.success) return;
+
+                    // Préserver la sélection si la classe existe toujours
+                    const classeGarde = selectClasse.value;
+                    selectClasse.innerHTML = '<option value="">— Choisir une classe —</option>';
+                    let selectionRetrouvee = false;
+                    data.classes.forEach(c => {
+                        const opt = document.createElement('option');
+                        opt.value = c.id;
+                        opt.textContent = c.nom + (c.serie ? ' (' + c.serie + ')' : '');
+                        if (String(c.id) === String(classeGarde)) {
+                            opt.selected = true;
+                            selectionRetrouvee = true;
+                        }
+                        selectClasse.appendChild(opt);
+                    });
+                    if (!selectionRetrouvee && classeCourante) {
+                        // La classe n'existe plus pour cette année : réinitialiser
+                        selectClasse.value = '';
+                    }
+                    classeCourante = selectClasse.value;
+                })
+                .catch(err => console.error('Erreur chargement classes :', err));
+        }
+
+        selectAnnee.addEventListener('change', function () {
+            chargerClasses(this.value);
+        });
+
+        // Charger au chargement si une année est déjà sélectionnée
+        if (selectAnnee.value) {
+            chargerClasses(selectAnnee.value);
+        }
+    }
+
+    // ✅ FIX: Map JS indexée pour éviter l'injection HTML via data-*
+    const elevesDataMap = {};
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function cacherResultats() {
+        if (resultatsRecherche) {
+            resultatsRecherche.style.display = 'none';
+            resultatsRecherche.innerHTML = '';
+        }
+    }
+
+    // ============================================================
+    // AFFICHER INFO ÉLÈVE
+    // ============================================================
+    function afficherInfoEleve(eleve) {
+        if (champEleveCache) champEleveCache.value = eleve.id;
+        if (champEleveSelect) champEleveSelect.value = eleve.id;
+        if (champRecherche) {
+            champRecherche.value = `${eleve.matricule} — ${eleve.nom} ${eleve.prenom}`;
+        }
+
+        document.getElementById('infoNom').textContent = `${eleve.nom} ${eleve.prenom}`;
+        document.getElementById('infoMatricule').textContent = eleve.matricule || '—';
+        document.getElementById('infoDateNaiss').textContent = eleve.date_naissance || '—';
+        document.getElementById('infoLieuNaiss').textContent = eleve.lieu_naissance || '—';
+        infoEleve.classList.remove('d-none');
+
+        // ✅ Afficher/masquer l'alerte "Déjà inscrit"
+        if (alerteDejaInscrit) {
+            if (eleve.deja_inscrit) {
+                alerteDejaInscrit.classList.remove('d-none');
+            } else {
+                alerteDejaInscrit.classList.add('d-none');
+            }
+        }
+
+        cacherResultats();
+    }
+
+    function retirerEleve() {
+        if (champEleveCache) champEleveCache.value = '';
+        if (champEleveSelect) champEleveSelect.value = '';
+        if (champRecherche) champRecherche.value = '';
+        if (infoEleve) infoEleve.classList.add('d-none');
+        if (alerteDejaInscrit) alerteDejaInscrit.classList.add('d-none');
+    }
+
+    // ============================================================
+    // AFFICHER LES RÉSULTATS DE RECHERCHE
+    // ============================================================
+    function afficherResultats(eleves) {
+        if (!resultatsRecherche) return;
+
+        if (!eleves || eleves.length === 0) {
+            resultatsRecherche.innerHTML = `
+                <div class="list-group-item text-muted">
+                    <i class="fas fa-info-circle me-1"></i> Aucun élève trouvé
+                </div>
+            `;
+            resultatsRecherche.style.display = 'block';
+            return;
+        }
+
+        // Nettoyer le cache
+        Object.keys(elevesDataMap).forEach(k => delete elevesDataMap[k]);
+
+        let html = '';
+        eleves.forEach((eleve, idx) => {
+            const key = `eleve_${idx}`;
+            elevesDataMap[key] = eleve;
+
+            // ✅ FIX: échapper toutes les valeurs
+            const nomSafe = escapeHtml(eleve.nom);
+            const prenomSafe = escapeHtml(eleve.prenom);
+            const matriculeSafe = escapeHtml(eleve.matricule || '—');
+            const dateSafe = escapeHtml(eleve.date_naissance || '');
+            const lieuSafe = escapeHtml(eleve.lieu_naissance || '');
+
+            const badgeDejaInscrit = eleve.deja_inscrit
+                ? '<span class="badge bg-warning text-dark ms-2"><i class="fas fa-exclamation-triangle"></i> Déjà inscrit</span>'
+                : '';
+
+            html += `
+                <button type="button"
+                        class="list-group-item list-group-item-action resultat-item"
+                        data-eleve-key="${key}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${nomSafe} ${prenomSafe}</strong>
+                            ${badgeDejaInscrit}
+                            <br>
+                            <small class="text-muted">
+                                <code>${matriculeSafe}</code>
+                                ${dateSafe ? ' | Né(e) le : ' + dateSafe : ''}
+                                ${lieuSafe ? ' à ' + lieuSafe : ''}
+                            </small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                </button>
+            `;
+        });
+
+        resultatsRecherche.innerHTML = html;
+        resultatsRecherche.style.display = 'block';
+
+        // ✅ Attacher les événements via la map indexée (pas de JSON.parse)
+        resultatsRecherche.querySelectorAll('.resultat-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const eleve = elevesDataMap[this.dataset.eleveKey];
+                if (eleve) afficherInfoEleve(eleve);
+            });
+        });
+    }
+
+    // ============================================================
+    // RECHERCHE AJAX (avec debounce)
+    // ============================================================
+    let timer = null;
+    if (champRecherche) {
+        champRecherche.addEventListener('input', function () {
+            clearTimeout(timer);
+            const q = this.value.trim();
+
+            if (q.length < 2) {
+                cacherResultats();
+                return;
+            }
+
+            timer = setTimeout(() => {
+                fetch(`${urlApiRecherche}?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            afficherResultats(data.eleves);
+                        } else {
+                            cacherResultats();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur recherche :', error);
+                        cacherResultats();
+                    });
+            }, 300);
+        });
+
+        // Fermer les résultats si on clique ailleurs
+        document.addEventListener('click', function (e) {
+            if (champRecherche && !champRecherche.contains(e.target) &&
+                resultatsRecherche && !resultatsRecherche.contains(e.target)) {
+                cacherResultats();
+            }
+        });
+    }
+
+    // ============================================================
+    // BOUTON RETIRER ÉLÈVE
+    // ============================================================
+    if (btnRetirerEleve) {
+        btnRetirerEleve.addEventListener('click', retirerEleve);
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Certificat de transfert - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-exchange-alt me-2"></i> Certificat de transfert - {{ eleve }}</h5>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info">
+            <strong>Classe :</strong> {{ inscription.classe.get_nomClasse_display }} —
+            <strong>Année scolaire :</strong> {{ annee_scolaire }} —
+            <strong>Scolarité totale :</strong> {{ eleve.scolarite_totale }} ans
+        </div>
+        <form method="post">
+            {% csrf_token %}
+            <div class="alert alert-info">
+                <i class="fas fa-calculator me-2"></i>
+                <strong>Travail (moyenne générale annuelle) :</strong> {{ moyenne_generale|default:"Non calculée pour cette année" }}
+            </div>
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-file-export"></i> Générer le certificat
+            </button>
+            <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.id %}" class="btn btn-secondary">Annuler</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

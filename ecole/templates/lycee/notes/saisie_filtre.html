@@ -1,0 +1,176 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Saisie des notes - Choix de la classe{% endblock %}
+
+{% block lycee_content %}
+
+<div class="text-center mb-4">
+    <i class="fas fa-edit fa-3x text-primary mb-3"></i>
+    <h4>Saisie des notes par classe</h4>
+    <p class="text-muted">
+        Sélectionnez la classe, la matière et le trimestre pour saisir toutes les notes
+        des élèves en une seule fois.
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-filter me-2"></i>
+                    Critères de saisie
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="get" novalidate id="formFiltreSaisie">
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar me-1"></i>
+                                Année scolaire <span class="text-danger">*</span>
+                            </label>
+                            {{ form.annee_scolaire }}
+                            {% if form.annee_scolaire.errors %}
+                                <div class="text-danger small">{{ form.annee_scolaire.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-chalkboard me-1"></i>
+                                Classe <span class="text-danger">*</span>
+                            </label>
+                            <!-- ✅ FIX: onchange pour recharger les matières -->
+                            {{ form.classe }}
+                            <small class="text-muted d-block">
+                                Ex : 10ème CG1, 11ème L2, TLL1, TSS2...
+                            </small>
+                            {% if form.classe.errors %}
+                                <div class="text-danger small">{{ form.classe.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-book me-1"></i>
+                                Matière <span class="text-danger">*</span>
+                            </label>
+                            {{ form.matiere }}
+
+                            <!-- ✅ Message d'aide contextuel -->
+                            {% if not form.classe.value %}
+                                <small class="text-muted d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Sélectionnez d'abord une classe.
+                                </small>
+                            {% elif not form.fields.matiere.queryset.exists %}
+                                <small class="text-danger d-block">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    Aucune matière n'est associée à cette classe.
+                                    <a href="{% url 'lycee:matiere_classe_lycee_list' %}"
+                                       class="alert-link">
+                                        Configurer les matières
+                                    </a>
+                                </small>
+                            {% endif %}
+
+                            {% if form.matiere.errors %}
+                                <div class="text-danger small">{{ form.matiere.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Trimestre <span class="text-danger">*</span>
+                            </label>
+                            {{ form.trimestre }}
+                            {% if form.trimestre.errors %}
+                                <div class="text-danger small">{{ form.trimestre.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mt-2">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        <strong>Astuce :</strong> Après avoir choisi les critères, vous verrez
+                        la liste de tous les élèves de la classe avec 2 champs par élève :
+                        <strong>Note de classe</strong> et <strong>Note de composition</strong>.
+                    </div>
+
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg" id="btnContinuer">
+                            <i class="fas fa-arrow-right me-2"></i>
+                            Continuer vers la saisie
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Aide -->
+        <div class="card mt-3">
+            <div class="card-body">
+                <h6 class="text-muted mb-3">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Comment fonctionne la saisie ?
+                </h6>
+                <ul class="mb-0 small">
+                    <li>Chaque élève a <strong>2 notes à saisir</strong> : la note de classe et la note de composition.</li>
+                    <li>La <strong>moyenne</strong> est calculée automatiquement : <code>(Composition × 2 + Note de classe) / 3</code></li>
+                    <li>Laissez les 2 champs vides pour <strong>supprimer</strong> une note existante.</li>
+                    <li>Les notes doivent être comprises <strong>entre 0 et 20</strong>.</li>
+                    <li>
+                        <i class="fas fa-filter text-primary"></i>
+                        <strong>Les matières affichées dépendent de la classe sélectionnée.</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectClasse = document.getElementById('id_classe');
+    const selectMatiere = document.getElementById('id_matiere');
+    const form = document.getElementById('formFiltreSaisie');
+
+    // ============================================================
+    // ✅ FIX: quand la classe change, recharger le formulaire
+    //         pour que les matières soient filtrées côté serveur
+    // ============================================================
+    if (selectClasse) {
+        selectClasse.addEventListener('change', function () {
+            // Réinitialiser la matière sélectionnée
+            if (selectMatiere) {
+                selectMatiere.value = '';
+            }
+            // Soumettre le formulaire pour recharger la liste des matières
+            form.submit();
+        });
+    }
+
+    // ============================================================
+    // Déplacer le focus sur la matière si classe déjà sélectionnée
+    // ============================================================
+    if (selectClasse && selectClasse.value && selectMatiere) {
+        // La classe est déjà choisie → proposer de sélectionner la matière
+        if (!selectMatiere.value) {
+            selectMatiere.focus();
+        }
+    }
+});
+</script>
+{% endblock %}

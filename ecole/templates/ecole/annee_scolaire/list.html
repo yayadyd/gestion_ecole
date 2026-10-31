@@ -1,0 +1,52 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Années scolaires{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Liste des années scolaires</h4>
+    {% if perms.ecole.change_anneescolaire %}
+    <a href="{% url 'fondamental:annee_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle année
+    </a>
+{% endif %}
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Année scolaire</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for annee in annees %}
+                    <tr>
+                        <td>{{ annee.idAnneeScolaire }}</td>
+                        <td>{{ annee.anneeScolaire }}</td>
+                        <td class="text-end">
+                            <td>
+                                {% if perms.ecole.change_anneescolaire %}
+                                    <a href="{% url 'fondamental:annee_update' annee.pk %}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                {% endif %}
+                                {% if perms.ecole.delete_anneescolaire %}
+                                    <a href="{% url 'fondamental:annee_delete' annee.pk %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                {% endif %}
+                            </td>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center text-muted">Aucune année scolaire enregistrée</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

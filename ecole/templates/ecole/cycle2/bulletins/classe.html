@@ -1,0 +1,243 @@
+{% extends 'ecole/base.html' %}
+{% load custom_filters %}
+{% load static %}
+{% block page_title %}Bulletins - {{ annee_scolaire }} - {{ trimestre }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4>
+        <i class="fas fa-file-alt me-2"></i>
+        Bulletins - {{ annee_scolaire }}
+        <span class="badge bg-primary ms-2">{{ trimestre }}</span>
+        {% if classe_filtree %}
+        <span class="badge bg-secondary ms-2">{{ classe_filtree.nomClasse }}</span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <div class="btn-group btn-group-sm" role="group">
+            {% for key, value in trimestres.items %}
+                {% if classe_filtree %}
+                <a href="{% url 'fondamental:cycle2_bulletins_classe_filtre' annee_scolaire key classe_filtree.idClasse %}"
+                   class="btn {% if key == trimestre %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {{ value|slice:":10" }}
+                </a>
+                {% else %}
+                <a href="{% url 'fondamental:cycle2_bulletins_classe' annee_scolaire key %}"
+                   class="btn {% if key == trimestre %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                    {{ value|slice:":10" }}
+                </a>
+                {% endif %}
+            {% endfor %}
+        </div>
+        <a href="{% url 'fondamental:cycle2_exporter_bulletins_pdf' annee_scolaire trimestre %}"
+           class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Exporter PDF
+        </a>
+        <a href="{% url 'fondamental:cycle2_calculer_moyennes' annee_scolaire trimestre %}" class="btn btn-success btn-sm">
+            <i class="fas fa-calculator"></i> Calculer
+        </a>
+        <a href="{% url 'fondamental:cycle2_classer_eleves' annee_scolaire trimestre %}" class="btn btn-warning btn-sm">
+            <i class="fas fa-sort"></i> Classer
+        </a>
+        
+        {% if classe_filtree %}
+        <a href="{% url 'fondamental:cycle2_bulletins_classe' annee_scolaire trimestre %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-times"></i> Toutes les classes
+        </a>
+        {% endif %}
+        <a href="{% url 'fondamental:cycle2_bulletins_index' %}?annee={{ annee_scolaire }}" class="btn btn-info btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Sélecteur rapide de classe -->
+{% if not classe_filtree %}
+<div class="mb-3 no-print">
+    <div class="d-flex flex-wrap gap-1">
+        {% for c in classes %}
+        <a href="{% url 'fondamental:cycle2_bulletins_classe_filtre' annee_scolaire trimestre c.idClasse %}" class="btn btn-sm btn-outline-dark">
+            {{ c.nomClasse }}
+        </a>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% for classe, resultats in resultats_par_classe.items %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-chalkboard me-2"></i>
+            {{ classe.nomClasse }}
+            <span class="badge bg-light text-dark ms-2">{{ resultats|length }} élèves</span>
+            {% with stats=stats_par_classe|get_item:classe %}
+            {% if stats %}
+            <span class="badge bg-info ms-2">Moyenne classe: {{ stats.moyenne_classe }}/20</span>
+            {% endif %}
+            {% endwith %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            {% with matieres=matieres_par_classe|get_item:classe %}
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Élève</th>
+                        <th>Matricule</th>
+                        {% for matiere in matieres %}
+                        <th class="text-center" title="{{ matiere.nomMatiere }}">
+                            {{ matiere.nomMatiere|slice:":8" }}
+                            <br>
+                            <small>/20</small>
+                        </th>
+                        {% endfor %}
+                        <th class="text-center">Moyenne</th>
+                        <th class="text-center">Rang</th>
+                        <th class="text-center">Bulletin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resultat in resultats %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            {{ resultat.inscription.eleve.nomEleve }} {{ resultat.inscription.eleve.prenomEleve }}
+                        </td>
+                        <td>{{ resultat.inscription.eleve.matricule }}</td>
+
+                        {% for matiere in matieres %}
+                        {% with detail=resultat.details_dict|get_item:matiere.idMatiere %}
+                        {% if detail %}
+                        <td class="text-center
+                            {% if detail.moyenne_generale >= 16 %}text-success
+                            {% elif detail.moyenne_generale >= 14 %}text-primary
+                            {% elif detail.moyenne_generale >= 12 %}text-info
+                            {% elif detail.moyenne_generale >= 10 %}text-warning
+                            {% else %}text-danger{% endif %}">
+                            <strong>{{ detail.moyenne_generale }}</strong>
+                        </td>
+                        {% else %}
+                        <td class="text-center text-muted">-</td>
+                        {% endif %}
+                        {% endwith %}
+                        {% endfor %}
+
+                        <td class="text-center">
+                            <strong class="{% if resultat.moyenne_generale >= 12 %}text-success
+                                          {% elif resultat.moyenne_generale >= 10 %}text-warning
+                                          {% else %}text-danger{% endif %}">
+                                {{ resultat.moyenne_generale }}
+                            </strong>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if resultat.rang <= 3 %}bg-success
+                                          {% elif resultat.rang <= 5 %}bg-primary
+                                          {% elif resultat.rang <= 10 %}bg-info
+                                          {% elif resultat.rang <= 20 %}bg-warning
+                                          {% else %}bg-secondary{% endif %}">
+                                {{ resultat.rang }}/{{ resultats|length }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{% url 'fondamental:cycle2_bulletin_eleve' resultat.inscription.eleve.id annee_scolaire trimestre %}"
+                               class="btn btn-sm btn-info">
+                                <i class="fas fa-file-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% endwith %}
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    Aucun résultat disponible pour ce trimestre.
+    <a href="{% url 'fondamental:cycle2_calculer_moyennes' annee_scolaire trimestre %}" class="alert-link">
+        Calculer les moyennes
+    </a>
+</div>
+{% endfor %}
+
+<!-- Statistiques -->
+<div class="row mt-4 no-print">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Statistiques globales</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statsGlobales"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('statsGlobales');
+    if (!ctx) return;
+
+    const classes = [];
+    const moyennes = [];
+
+    {% for classe, resultats in resultats_par_classe.items %}
+        classes.push("{{ classe.nomClasse }}");
+        const data = [
+            {% for resultat in resultats %}
+                {{ resultat.moyenne_generale }},
+            {% endfor %}
+        ];
+        if (data.length > 0) {
+            moyennes.push(data.reduce((a, b) => a + b, 0) / data.length);
+        } else {
+            moyennes.push(0);
+        }
+    {% endfor %}
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: classes,
+            datasets: [{
+                label: 'Moyenne de la classe',
+                data: moyennes,
+                backgroundColor: moyennes.map(m =>
+                    m >= 14 ? 'rgba(40, 167, 69, 0.6)' :
+                    m >= 12 ? 'rgba(0, 123, 255, 0.6)' :
+                    m >= 10 ? 'rgba(255, 193, 7, 0.6)' :
+                    'rgba(220, 53, 69, 0.6)'
+                ),
+                borderColor: 'rgba(0, 0, 0, 0.2)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Moyennes par classe - {{ trimestre }}'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 20,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '/20';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

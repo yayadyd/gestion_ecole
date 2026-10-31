@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mali Kalanso{% endblock %}</title>
+    {% load static %}
+
+    <link rel="icon" type="image/png" href="{% static 'img/icon_app.jpg' %}">
+
+    <!-- Bootstrap 5 CSS -->
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+
+    <style>
+        body { font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif; }
+        .sidebar { min-height: 100vh; background: #2c3e50; padding-top: 20px; }
+        .sidebar .nav-link { color: #ecf0f1; padding: 10px 20px; border-radius: 6px; margin: 2px 8px; transition: all 0.2s; }
+        .sidebar .nav-link:hover { background: #34495e; color: white; }
+        .sidebar .nav-link.active { background: #3498db; color: white; font-weight: 600; }
+        .sidebar-brand { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 15px 10px; margin-bottom: 10px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .sidebar-logo { height: 40px; width: auto; object-fit: contain; background: white; border-radius: 8px; padding: 4px; }
+        .sidebar-brand-text { color: white; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.5px; line-height: 1.2; margin: 0; }
+        .sidebar-brand-text small { display: block; font-size: 0.7rem; font-weight: 400; opacity: 0.7; }
+        .main-content { padding: 20px; background: #f5f7fa; min-height: 100vh; }
+        .navbar { background: #3498db !important; border-radius: 10px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); }
+        .navbar-brand { color: white !important; font-weight: 600; }
+        .navbar-ecole-name { color: white; font-size: 1rem; font-weight: 500; padding: 6px 18px; background: rgba(255, 255, 255, 0.15); border-radius: 20px; display: inline-flex; align-items: center; gap: 8px; max-width: 500px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .card-stats { border-radius: 10px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); transition: transform 0.3s; }
+        .card-stats:hover { transform: translateY(-5px); }
+        .stat-icon { font-size: 2.5rem; opacity: 0.3; }
+        .delete-confirm { max-width: 500px; margin: 50px auto; }
+        @media (max-width: 991.98px) { .sidebar { min-height: auto; } .navbar-ecole-name { display: none; } }
+        @media print { .no-print { display: none !important; } .sidebar { display: none !important; } .main-content { padding: 0; background: white; } .navbar { background: white !important; box-shadow: none; } .navbar-brand, .navbar-ecole-name, .navbar .nav-link { color: black !important; } }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- SIDEBAR -->
+            <nav class="col-md-2 d-md-block sidebar p-0 no-print">
+                <div class="position-sticky">
+                    <div class="sidebar-brand">
+                        <img src="{% static 'img/icon_app.jpg' %}" alt="Mali Kalanso" class="sidebar-logo">
+                        <h5 class="sidebar-brand-text">
+                            Mali Kalanso
+                            <small>Gestion Scolaire</small>
+                        </h5>
+                    </div>
+
+                    <ul class="nav flex-column">
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}" href="{% url 'fondamental:dashboard' %}">
+                                <i class="fas fa-tachometer-alt me-2"></i> Tableau de bord
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'annee' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:annee_list' %}">
+                                <i class="fas fa-calendar-alt me-2"></i> Années scolaires
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'classe' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:classe_list' %}">
+                                <i class="fas fa-chalkboard me-2"></i> Classes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'eleve' in request.resolver_match.url_name and 'liste-filtree' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:eleve_list' %}">
+                                <i class="fas fa-user-graduate me-2"></i> Élèves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'liste-filtree' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:eleve_list_filtered' %}">
+                                <i class="fas fa-list-ul me-2"></i> Liste des élèves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'inscription' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:inscription_list' %}">
+                                <i class="fas fa-pen-fancy me-2"></i> Inscriptions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'dossier' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:dossiers_scolaires_index' %}">
+                                <i class="fas fa-folder-open me-2"></i> Dossiers scolaires
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'paiement' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:paiement_list' %}">
+                                <i class="fas fa-money-bill-wave me-2"></i> Paiements
+                            </a>
+                        </li>
+
+                        <!-- MENU COMPTABILITÉ -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#menuComptabilite" role="button" aria-expanded="false" aria-controls="menuComptabilite">
+                                <span><i class="fas fa-calculator me-2"></i> Comptabilité</span>
+                                <i class="fas fa-chevron-down small"></i>
+                            </a>
+                            <div class="collapse" id="menuComptabilite">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:comptabilite_dashboard' %}"><i class="fas fa-tachometer-alt me-2"></i> Tableau de bord</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:depense_list' %}"><i class="fas fa-receipt me-2"></i> Dépenses</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:recette_list' %}"><i class="fas fa-hand-holding-usd me-2"></i> Recettes</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:rapports_comptables' %}"><i class="fas fa-file-invoice-dollar me-2"></i> Rapports</a></li>
+                                </ul>
+                            </div>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'matiere' in request.resolver_match.url_name and 'matiere_classe' not in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:matiere_list' %}">
+                                <i class="fas fa-book me-2"></i> Matières
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'matiere_classe' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:matiere_classe_list' %}">
+                                <i class="fas fa-book-reader me-2"></i> Matières par classe
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'note' in request.resolver_match.url_name or 'saisie' in request.resolver_match.url_name or 'evaluation' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:notes_choix' %}">
+                                <i class="fas fa-star me-2"></i> Notes
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'bulletin' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:bulletins_choix' %}">
+                                <i class="fas fa-file-alt me-2"></i> Bulletins
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'resultats_index' %}active{% endif %}" href="{% url 'fondamental:resultats_index' %}">
+                                <i class="fas fa-award me-2"></i> Résultats par période
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'resultats' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:eleve_resultats' %}">
+                                <i class="fas fa-trophy me-2"></i> Résultats des élèves
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'proposition_passage' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'fondamental:proposition_passage_index' %}">
+                                <i class="fas fa-list-ol me-2"></i> Proposition de passage
+                            </a>
+                        </li>
+
+                        <!-- MENU EMPLOI DU TEMPS -->
+                        <li class="nav-item">
+                            <a class="nav-link d-flex justify-content-between align-items-center" data-bs-toggle="collapse" href="#menuEmploiTemps" role="button" aria-expanded="false" aria-controls="menuEmploiTemps">
+                                <span><i class="fas fa-calendar-alt me-2"></i> Emplois du temps</span>
+                                <i class="fas fa-chevron-down small"></i>
+                            </a>
+                            <div class="collapse" id="menuEmploiTemps">
+                                <ul class="nav flex-column ms-3">
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:emploi_temps_index' %}"><i class="fas fa-calendar-alt me-2"></i> Emplois du temps</a></li>
+                                    <li class="nav-item"><a class="nav-link" href="{% url 'fondamental:plage_horaire_list' %}"><i class="fas fa-clock me-2"></i> Plages horaires</a></li>
+                                </ul>
+                            </div>
+                        </li>
+
+                        <!-- MENU ADMINISTRATION -->
+                        {% if perms.ecole.change_ecoleinfo %}
+                        <li class="nav-item mt-3"><hr class="text-white-50 mx-3"></li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'core:utilisateur_list' %}">
+                                <i class="fas fa-users-cog me-2"></i> Utilisateurs
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'parametres' in request.resolver_match.url_name %}active{% endif %}" href="{% url 'parametres_ecole' %}">
+                                <i class="fas fa-school me-2"></i> Paramètres école
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </nav>
+
+            <!-- CONTENU PRINCIPAL -->
+            <main class="col-md-10 ms-sm-auto px-md-4 main-content">
+                <nav class="navbar navbar-expand-lg navbar-dark mb-4 no-print">
+                    <div class="container-fluid">
+                        <span class="navbar-brand">
+                            {% block page_title %}Mali Kalanso{% endblock %}
+                        </span>
+
+                        <div class="d-none d-lg-flex flex-grow-1 justify-content-center">
+                            <span class="navbar-ecole-name">
+                                {% if ecole and ecole.logo %}
+                                <img src="{{ ecole.logo.url }}" style="height: 30px; border-radius: 4px;" alt="{{ ecole.nom }}">
+                                {% endif %}
+                                {{ ecole.nom|default:"Gestion Scolaire" }}
+                            </span>
+                        </div>
+
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        <div class="collapse navbar-collapse flex-grow-0" id="navbarNav">
+                            <ul class="navbar-nav ms-auto align-items-center">
+                                <!-- ✅ MENU DÉROULANT UTILISATEUR -->
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdownUser" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="fas fa-user-circle me-1"></i> {{ user.username }}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdownUser">
+                                        <!-- ✅ BOUTON PASSER AU LYCÉE -->
+                                        {% if ACTIVER_LYCEE %}
+                                        <li>
+                                            <a class="dropdown-item text-primary fw-bold" href="{% url 'lycee:dashboard' %}">
+                                                <i class="fas fa-graduation-cap me-2"></i> Passer au Lycée
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        {% endif %}
+
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'password_change' %}">
+                                                <i class="fas fa-key me-2"></i> Modifier mon mot de passe
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item text-danger">
+                                                    <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                                                </button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+
+                {% if messages %}
+                    <div class="no-print">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+
+                {% if user.is_authenticated and licence %}
+                    {% if licence.est_en_essai %}
+                        {% if licence.jours_restants_essai <= 7 %}
+                            <div class="alert alert-danger alert-dismissible fade show no-print" role="alert">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>⚠️ Attention :</strong> votre période d'essai se termine dans
+                                <strong>{{ licence.jours_restants_essai }} jour{{ licence.jours_restants_essai|pluralize }}</strong>.
+                                Contactez le fournisseur pour activer votre licence.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% elif licence.jours_restants_essai <= 15 %}
+                            <div class="alert alert-warning alert-dismissible fade show no-print" role="alert">
+                                <i class="fas fa-clock me-2"></i>
+                                <strong>Période d'essai :</strong>
+                                <strong>{{ licence.jours_restants_essai }} jour{{ licence.jours_restants_essai|pluralize }}</strong> restant{{ licence.jours_restants_essai|pluralize }}.
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                {% endif %}
+
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+    <script src="{% static 'vendor/chartjs/chart.min.js' %}"></script>
+    <script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+    <script>
+        $(document).ready(function() {
+            setTimeout(function() { $('.alert').alert('close'); }, 5000);
+        });
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

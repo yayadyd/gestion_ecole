@@ -1,0 +1,318 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Rapports comptables{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+
+    <!-- EN-TÊTE -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h4 class="mb-0">
+            <i class="fas fa-file-invoice-dollar me-2"></i>
+            Rapports comptables
+            {% if annee_encours %}
+                <small class="text-muted">— {{ annee_encours }}
+                    {% if mois_label %} / {{ mois_label }}{% endif %}
+                    {% if section_active %} / {{ section_active }}{% endif %}
+                </small>
+            {% endif %}
+        </h4>
+    </div>
+
+    <!-- FILTRES -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small">Année scolaire</label>
+                    <select name="annee" class="form-select form-select-sm" id="selectAnnee">
+                        {% for a in annees_scolaires %}
+                            <option value="{{ a.idAnneeScolaire }}"
+                                    {% if a == annee_selectionnee %}selected{% endif %}>
+                                {{ a.anneeScolaire }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Mois (optionnel)</label>
+                    <select name="mois" class="form-select form-select-sm">
+                        <option value="">— Toute l'année —</option>
+                        {% for num, nom, annee, label in mois_scolaires_liste %}
+                            <option value="{{ num }}" {% if num == mois_selectionne %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Section</label>
+                    <select name="section" class="form-select form-select-sm">
+                        <option value="" {% if not section_active or section_active == 'global' %}selected{% endif %}>
+                            — Toutes (global) —
+                        </option>
+                        {% for c in sections_choix %}
+                            {% if c.0 != 'global' %}
+                                <option value="{{ c.0 }}"{% if section_active == c.0 %}selected{% endif %}>
+                                    {{ c.1 }}
+                                </option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary btn-sm flex-fill">
+                        <i class="fas fa-filter"></i> Filtrer
+                    </button>
+                    <a href="{% url 'fondamental:rapport_pdf' %}?annee={{ annee_selectionnee.idAnneeScolaire }}{% if mois_selectionne %}&mois={{ mois_selectionne }}{% endif %}{% if section_active %}&section={{ section_active }}{% endif %}"
+                       class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-file-pdf"></i> PDF
+                    </a>
+                    <a href="{% url 'fondamental:rapport_csv' %}?annee={{ annee_selectionnee.idAnneeScolaire }}{% if mois_selectionne %}&mois={{ mois_selectionne }}{% endif %}{% if section_active %}&section={{ section_active }}{% endif %}"
+                       class="btn btn-outline-success btn-sm">
+                        <i class="fas fa-file-csv"></i> CSV
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- SYNTHÈSE -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="small text-uppercase mb-1">Recettes</h6>
+                    <h4 class="mb-0">{{ total_recettes|floatformat:0 }} FCFA</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body">
+                    <h6 class="small text-uppercase mb-1">Dépenses</h6>
+                    <h4 class="mb-0">{{ total_depenses|floatformat:0 }} FCFA</h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if resultat_positif %}bg-primary{% else %}bg-warning text-dark{% endif %} text-white">
+                <div class="card-body">
+                    <h6 class="small text-uppercase mb-1">Résultat</h6>
+                    <h4 class="mb-0">
+                        {% if resultat_positif %}+{% endif %}{{ resultat|floatformat:0 }} FCFA
+                    </h4>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="small text-uppercase mb-1">Détail recettes</h6>
+                    <small>
+                        Frais : {{ recettes_frais|floatformat:0 }}<br>
+                        Scolarité : {{ recettes_scolarite|floatformat:0 }}<br>
+                        Autres : {{ recettes_autres|floatformat:0 }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DÉPENSES PAR CATÉGORIE -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h6 class="mb-0"><i class="fas fa-list me-1"></i> Dépenses par catégorie</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if depenses_par_categorie %}
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th class="text-center">Nb</th>
+                                    <th class="text-end">Montant</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in depenses_par_categorie %}
+                                <tr>
+                                    <td>{{ d.categorie__nom }}</td>
+                                    <td class="text-center">{{ d.nb }}</td>
+                                    <td class="text-end">{{ d.total|floatformat:0 }}</td>
+                                    <td class="text-end">{{ d.pourcentage }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="2">TOTAL</th>
+                                    <th class="text-end">{{ total_depenses|floatformat:0 }}</th>
+                                    <th class="text-end">100%</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">Aucune dépense</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-list me-1"></i> Recettes hors paiements</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if recettes_par_categorie %}
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th class="text-center">Nb</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recettes_par_categorie %}
+                                <tr>
+                                    <td>{{ r.categorie__nom }}</td>
+                                    <td class="text-center">{{ r.nb }}</td>
+                                    <td class="text-end">{{ r.total|floatformat:0 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-light">
+                                <tr>
+                                    <th colspan="2">TOTAL</th>
+                                    <th class="text-end">{{ recettes_autres|floatformat:0 }}</th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">Aucune recette hors paiements</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- ✅ NOUVEAU : DÉTAIL DES PAIEMENTS AVEC MOIS SCOLAIRE         -->
+    <!-- ============================================================ -->
+    {% if paiements_detail %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between">
+            <h6 class="mb-0">
+                <i class="fas fa-money-bill-wave me-1"></i>
+                Détail des paiements élèves
+                <span class="badge bg-light text-dark ms-2">{{ paiements_detail|length }}</span>
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Date paiement</th>
+                            <th>Élève</th>
+                            <th>Classe</th>
+                            <th>Type</th>
+                            <th>Mois scolaire</th>
+                            <th class="text-end">Montant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in paiements_detail %}
+                        <tr>
+                            <td>{{ p.date|date:"d/m/Y" }}</td>
+                            <td>{{ p.eleve }}</td>
+                            <td>{{ p.classe }}</td>
+                            <td>
+                                {% if p.est_inscription %}
+                                    <span class="badge bg-primary">Inscription</span>
+                                {% else %}
+                                    <span class="badge bg-success">Scolarité</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if p.mois_scolaire %}
+                                    <span class="badge bg-secondary">{{ p.mois_scolaire }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ p.montant|floatformat:0 }} FCFA</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- RÉPARTITION MENSUELLE (12 mois de l'année scolaire) -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Répartition mensuelle — {{ annee_encours }}
+            </h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Mois</th>
+                            <th class="text-end">Paiements</th>
+                            <th class="text-end">Autres rec.</th>
+                            <th class="text-end">Total rec.</th>
+                            <th class="text-end">Dépenses</th>
+                            <th class="text-end">Solde</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in repartition_mensuelle %}
+                        <tr>
+                            <td><strong>{{ m.nom }} {{ m.annee }}</strong></td>
+                            <td class="text-end">
+                                {% if m.recettes_paiements %}
+                                    {{ m.recettes_paiements|floatformat:0 }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if m.recettes_autres %}
+                                    {{ m.recettes_autres|floatformat:0 }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-end">
+                                {% if m.recettes %}
+                                    <strong>{{ m.recettes|floatformat:0 }}</strong>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-end text-danger">
+                                {% if m.depenses %}
+                                    {{ m.depenses|floatformat:0 }}
+                                {% else %}—{% endif %}
+                            </td>
+                            <td class="text-end {% if m.solde >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                <strong>
+                                    {% if m.solde >= 0 %}+{% endif %}{{ m.solde|floatformat:0 }}
+                                </strong>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

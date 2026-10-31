@@ -1,0 +1,131 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} recette
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-hand-holding-usd me-2"></i>
+        {% if form.instance.pk %}Modifier la recette{% else %}Nouvelle recette{% endif %}
+    </h4>
+    <a href="{% url 'fondamental:recette_list' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.categorie.id_for_label }}" class="form-label">
+                        {{ form.categorie.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.categorie }}
+                    {% if form.categorie.errors %}<div class="text-danger small">{{ form.categorie.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.date_recette.id_for_label }}" class="form-label">
+                        {{ form.date_recette.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.date_recette }}
+                    {% if form.date_recette.errors %}<div class="text-danger small">{{ form.date_recette.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label for="{{ form.libelle.id_for_label }}" class="form-label">
+                        {{ form.libelle.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.libelle }}
+                    {% if form.libelle.errors %}<div class="text-danger small">{{ form.libelle.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.montant.id_for_label }}" class="form-label">
+                        {{ form.montant.label }} <span class="text-danger">*</span>
+                    </label>
+                    <div class="input-group">
+                        {{ form.montant }}
+                        <span class="input-group-text">FCFA</span>
+                    </div>
+                    {% if form.montant.errors %}<div class="text-danger small">{{ form.montant.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.source.id_for_label }}" class="form-label">
+                        {{ form.source.label }}
+                    </label>
+                    {{ form.source }}
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.mode_paiement.id_for_label }}" class="form-label">
+                        {{ form.mode_paiement.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.mode_paiement }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.numero_piece.id_for_label }}" class="form-label">
+                        {{ form.numero_piece.label }}
+                    </label>
+                    {{ form.numero_piece }}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.justificatif.id_for_label }}" class="form-label">
+                        {{ form.justificatif.label }}
+                    </label>
+                    {{ form.justificatif }}
+                    {% if form.instance.justificatif %}
+                    <small class="text-muted d-block mt-1">
+                        <a href="{{ form.instance.justificatif.url }}" target="_blank">
+                            <i class="fas fa-paperclip"></i> Voir le justificatif actuel
+                        </a>
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.anneeScolaire.id_for_label }}" class="form-label">
+                        {{ form.anneeScolaire.label }} <span class="text-danger">*</span>
+                    </label>
+                    {{ form.anneeScolaire }}
+                    {% if form.anneeScolaire.errors %}<div class="text-danger small">{{ form.anneeScolaire.errors }}</div>{% endif %}
+                </div>
+
+                <div class="col-md-12 mb-3">
+                    <label for="{{ form.observation.id_for_label }}" class="form-label">
+                        {{ form.observation.label }}
+                    </label>
+                    {{ form.observation }}
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-end gap-2">
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+                <a href="{% url 'fondamental:recette_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

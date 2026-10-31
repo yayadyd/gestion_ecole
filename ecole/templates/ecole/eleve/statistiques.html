@@ -1,0 +1,395 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+{% block page_title %}Statistiques - {{ eleve }}{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-chart-bar me-2"></i>
+        Statistiques de {{ eleve.prenomEleve }} {{ eleve.nomEleve }}
+        <span class="badge bg-secondary ms-2">{{ eleve.matricule }}</span>
+        {% if cycle_actuel %}
+        <span class="badge {% if cycle_actuel == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-1">
+            {{ cycle_actuel }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <div>
+        <a href="{% url 'fondamental:eleve_detail' eleve.id %}" class="btn btn-info btn-sm">
+            <i class="fas fa-user"></i> Fiche élève
+        </a>
+        <a href="{% url 'fondamental:eleve_list' %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <button onclick="window.print()" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+    </div>
+</div>
+
+<!-- Infos élève -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <strong><i class="fas fa-id-card me-1"></i> Matricule :</strong>
+                <span class="badge bg-secondary">{{ eleve.matricule }}</span>
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-user me-1"></i> Nom :</strong> {{ eleve.nomEleve }}
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-user me-1"></i> Prénom :</strong> {{ eleve.prenomEleve }}
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-calendar-alt me-1"></i> Âge :</strong> {{ eleve.get_age }} ans
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cartes de statistiques -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card card-stats bg-primary text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-pen-fancy fa-2x mb-2"></i>
+                <h6>Inscriptions</h6>
+                <h3>{{ inscriptions|length }}</h3>
+                <small class="opacity-75">au total</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card card-stats bg-success text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-star fa-2x mb-2"></i>
+                <h6>Notes enregistrées</h6>
+                <h3>{{ nb_notes_total }}</h3>
+                <small class="opacity-75">
+                    {% if nb_notes_1er %}1er: {{ nb_notes_1er }}{% endif %}
+                    {% if nb_notes_1er and nb_notes_2e %} • {% endif %}
+                    {% if nb_notes_2e %}2e: {{ nb_notes_2e }}{% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card card-stats bg-warning text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-money-bill-wave fa-2x mb-2"></i>
+                <h6>Total payé</h6>
+                <h3>{{ total_paye|floatformat:0 }}</h3>
+                <small class="opacity-75">FCFA</small>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3 mb-3">
+        <div class="card card-stats {% if moyenne_generale and moyenne_generale >= 12 %}bg-success{% elif moyenne_generale and moyenne_generale >= 10 %}bg-warning{% else %}bg-danger{% endif %} text-white h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-trophy fa-2x mb-2"></i>
+                <h6>Moyenne générale</h6>
+                <h3>
+                    {% if moyenne_generale %}
+                        {{ moyenne_generale }}/20
+                    {% else %}
+                        -
+                    {% endif %}
+                </h3>
+                <small class="opacity-75">toutes matières</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inscriptions & Parcours -->
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-route me-2"></i> Parcours scolaire</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Année scolaire</th>
+                        <th>Classe</th>
+                        <th>Cycle</th>
+                        <th class="text-center">Moyenne</th>
+                        <th class="text-center">Rang</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inscription in inscriptions %}
+                    <tr>
+                        <td><span class="badge bg-primary">{{ inscription.anneeScolaire }}</span></td>
+                        <td><strong>{{ inscription.classe.nomClasse }}</strong></td>
+                        <td>
+                            <span class="badge {% if inscription.classe.cycle == '1er' %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ inscription.classe.get_cycle_display }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if inscription.classe.cycle == '1er' %}
+                                {% with res=inscription.resultatmensuel_set.first %}
+                                    {% if res %}<strong>{{ res.moyenne_generale }}/20</strong>{% else %}-{% endif %}
+                                {% endwith %}
+                            {% else %}
+                                {% with res=inscription.resultattrimestre_set.first %}
+                                    {% if res %}<strong>{{ res.moyenne_generale }}/20</strong>{% else %}-{% endif %}
+                                {% endwith %}
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <span class="text-muted">-</span>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucune inscription enregistrée
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Moyennes par matière -->
+{% if notes_par_matiere %}
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i> Moyennes par matière</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Matière</th>
+                                <th class="text-center">Cycle</th>
+                                <th class="text-center">Moyenne</th>
+                                <th class="text-center">Nb notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in notes_par_matiere %}
+                            <tr>
+                                <td>{{ item.matiere__nomMatiere }}</td>
+                                <td class="text-center">
+                                    <span class="badge {% if item.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                        {{ item.cycle }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <strong class="{% if item.moyenne >= 12 %}text-success{% elif item.moyenne >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ item.moyenne }}/20
+                                    </strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-secondary">{{ item.total }}</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graphique par matière -->
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Répartition par matière</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartMatieres"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    Aucune note enregistrée pour cet élève (ni 1er cycle, ni 2e cycle).
+</div>
+{% endif %}
+
+<!-- Paiements récents -->
+<div class="card mb-4">
+    <div class="card-header bg-warning text-dark">
+        <h5 class="mb-0"><i class="fas fa-money-bill-wave me-2"></i> Derniers paiements</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Mois</th>
+                        <th>Année</th>
+                        <th>Montant</th>
+                        <th>Classe</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paiement in paiements|slice:":10" %}
+                    <tr>
+                        <td>
+                            {% if paiement.est_inscription %}
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-file-invoice"></i> Inscription
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-calendar-alt"></i> Mensualité
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if paiement.est_inscription %}
+                                -
+                            {% else %}
+                                {{ paiement.get_mois_display }}
+                            {% endif %}
+                        </td>
+                        <td>{{ paiement.annee_paiement }}</td>
+                        <td><strong>{{ paiement.montant|floatformat:0 }} FCFA</strong></td>
+                        <td>
+                            {% if paiement.inscription and paiement.inscription.classe %}
+                                {{ paiement.inscription.classe.nomClasse }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucun paiement enregistré
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if paiements %}
+                <tfoot>
+                    <tr class="table-secondary">
+                        <td colspan="3" class="text-end"><strong>Total :</strong></td>
+                        <td><strong>{{ total_paye|floatformat:0 }} FCFA</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Liens rapides -->
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-link me-2"></i> Accès rapides</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'fondamental:eleve_detail' eleve.id %}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-user"></i> Fiche détaillée
+            </a>
+            <a href="{% url 'fondamental:cycle1_bulletins_eleve_annee' eleve.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-file-alt"></i> Bulletins 1er cycle
+            </a>
+            <a href="{% url 'fondamental:cycle2_bulletins_eleve_annee' eleve.id %}" class="btn btn-outline-primary btn-sm">
+                <i class="fas fa-file-alt"></i> Bulletins 2e cycle
+            </a>
+            <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.id %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-folder-open"></i> Dossier scolaire
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if notes_par_matiere %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartMatieres');
+    if (!ctx) return;
+
+    const labels = [
+        {% for item in notes_par_matiere %}
+            "{{ item.matiere__nomMatiere|escapejs }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const data = [
+        {% for item in notes_par_matiere %}
+            {{ item.moyenne }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const cycles = [
+        {% for item in notes_par_matiere %}
+            "{{ item.cycle }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const backgroundColors = cycles.map(c =>
+        c === '1er' ? 'rgba(23, 162, 184, 0.7)' : 'rgba(0, 123, 255, 0.7)'
+    );
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: backgroundColors,
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom' },
+                title: {
+                    display: true,
+                    text: 'Moyennes par matière (bleu clair = 1er cycle, bleu foncé = 2e cycle)'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const cycle = cycles[context.dataIndex];
+                            return context.label + ' (' + cycle + ') : ' + context.parsed.toFixed(2) + '/20';
+                        }
+                    }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .card { page-break-inside: avoid; }
+}
+</style>
+
+{% endblock %}

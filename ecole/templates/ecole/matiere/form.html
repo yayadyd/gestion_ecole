@@ -1,0 +1,374 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} matière
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+        margin-bottom: 25px;
+    }
+    .form-section h5 {
+        color: #2c3e50;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .form-section h5 i {
+        color: #3498db;
+        margin-right: 8px;
+    }
+    .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    .help-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    .info-box {
+        background: #eaf4fb;
+        border-left: 4px solid #3498db;
+        padding: 12px 15px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+    }
+    .info-box i {
+        color: #3498db;
+    }
+    .sticky-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 15px;
+        border-top: 2px solid #dee2e6;
+        z-index: 100;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        <i class="fas fa-book me-2 text-primary"></i>
+        {% if form.instance.pk %}
+            Modifier la matière : <strong>{{ form.instance.nomMatiere }}</strong>
+        {% else %}
+            Nouvelle matière
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:matiere_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- Formulaire -->
+<form method="post" id="matiereForm">
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}
+        <div><i class="fas fa-exclamation-triangle me-1"></i> {{ error }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="info-box">
+        <i class="fas fa-info-circle me-1"></i>
+        <strong>Astuce :</strong> Le <em>coefficient</em> et la <em>tendance</em>
+        sont utilisés uniquement pour le <strong>2e cycle</strong>.
+        Pour le <strong>1er cycle</strong>, ils sont automatiquement masqués.
+        {% if est_classique %}
+        <br>
+        <i class="fas fa-school me-1"></i>
+        École <strong>Classique</strong> : le nom arabe des matières n'est pas utilisé.
+        {% endif %}
+    </div>
+
+    <div class="row g-4">
+        <!-- ============================================================ -->
+        <!-- COLONNE GAUCHE : Informations de base                        -->
+        <!-- ============================================================ -->
+        <div class="col-lg-6">
+
+            <!-- Section : Identité de la matière -->
+            <div class="form-section">
+                <h5><i class="fas fa-tag"></i> Identité de la matière</h5>
+
+                <!-- Nom de la matière -->
+                <div class="mb-3">
+                    <label for="{{ form.nomMatiere.id_for_label }}" class="form-label required-field">
+                        {{ form.nomMatiere.label }}
+                    </label>
+                    {{ form.nomMatiere }}
+                    <div class="help-text">
+                        Ex : Français, Mathématiques, Histoire-Géographie...
+                    </div>
+                    {% if form.nomMatiere.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.nomMatiere.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Nom en arabe (uniquement si école franco-arabe) -->
+                {% if est_franco_arabe %}
+                <div class="mb-3">
+                    <label for="{{ form.nomArabe.id_for_label }}" class="form-label">
+                        {{ form.nomArabe.label }}
+                    </label>
+                    {{ form.nomArabe }}
+                    <div class="help-text">
+                        Nom en arabe (facultatif). Apparaîtra sur le bulletin.
+                    </div>
+                    {% if form.nomArabe.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.nomArabe.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Section : Cycle -->
+            <div class="form-section">
+                <h5><i class="fas fa-layer-group"></i> Cycle d'enseignement</h5>
+
+                <div class="mb-3">
+                    <label for="{{ form.cycle.id_for_label }}" class="form-label required-field">
+                        {{ form.cycle.label }}
+                    </label>
+                    {{ form.cycle }}
+                    <div class="help-text">
+                        <strong>1er cycle</strong> : notes sur 10, sans coefficient<br>
+                        <strong>2e cycle</strong> : notes sur 20, avec coefficients et tendances
+                    </div>
+                    {% if form.cycle.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.cycle.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- COLONNE DROITE : Coefficient + Tendance (2e cycle uniquement)-->
+        <!-- ============================================================ -->
+        <div class="col-lg-6">
+
+            <!-- ✅ Section : Coefficient (uniquement 2e cycle) -->
+            <div class="form-section" id="coefficientSection">
+                <h5><i class="fas fa-balance-scale"></i> Coefficient</h5>
+
+                <div class="mb-3" id="coefficientContainer">
+                    <label for="{{ form.coef.id_for_label }}" class="form-label">
+                        {{ form.coef.label }}
+                    </label>
+                    {{ form.coef }}
+                    <div class="help-text">
+                        <i class="fas fa-info-circle me-1 text-primary"></i>
+                        Utilisé uniquement pour le <strong>2e cycle</strong>.
+                    </div>
+                    {% if form.coef.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.coef.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Message informatif pour le 1er cycle -->
+                <div id="coefficientNonApplicable" class="alert alert-light border" style="display: none;">
+                    <i class="fas fa-info-circle text-muted me-1"></i>
+                    <small class="text-muted">
+                        Le <strong>coefficient</strong> ne s'applique qu'aux matières du
+                        <strong>2e cycle</strong>.
+                    </small>
+                </div>
+            </div>
+
+            <!-- ✅ Section : Tendance (uniquement 2e cycle) -->
+            <div class="form-section" id="tendanceSection">
+                <h5><i class="fas fa-bookmark"></i> Tendance</h5>
+
+                <div class="mb-3" id="tendanceContainer">
+                    <label for="{{ form.tendance.id_for_label }}" class="form-label">
+                        {{ form.tendance.label }}
+                        <small class="text-muted fw-normal">(optionnel)</small>
+                    </label>
+                    {{ form.tendance }}
+                    <div class="help-text">
+                        <i class="fas fa-info-circle me-1 text-primary"></i>
+                        <strong>Littéraire</strong> ou <strong>Scientifique</strong>.
+                        Utilisé pour la fiche de suivi 2e cycle.<br>
+                        Laisser vide si la matière n'entre dans aucune catégorie.
+                    </div>
+                    {% if form.tendance.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.tendance.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Message informatif pour le 1er cycle -->
+                <div id="tendanceNonApplicable" class="alert alert-light border" style="display: none;">
+                    <i class="fas fa-info-circle text-muted me-1"></i>
+                    <small class="text-muted">
+                        La <strong>tendance</strong> ne s'applique qu'aux matières du
+                        <strong>2e cycle</strong>.
+                    </small>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sticky-actions d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Les champs marqués d'un <span class="text-danger fw-bold">*</span>
+            sont obligatoires
+        </small>
+        <div>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+             <a href="{% url 'fondamental:matiere_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const cycleSelect = document.getElementById('id_cycle');
+
+    // Tendance
+    const tendanceContainer = document.getElementById('tendanceContainer');
+    const tendanceNonApplicable = document.getElementById('tendanceNonApplicable');
+    const tendanceSelect = document.getElementById('id_tendance');
+
+    // Coefficient
+    const coefficientContainer = document.getElementById('coefficientContainer');
+    const coefficientNonApplicable = document.getElementById('coefficientNonApplicable');
+    const coefficientSelect = document.getElementById('id_coef');
+
+    // ============================================================
+    // AFFICHAGE CONDITIONNEL : Coefficient + Tendance (2e cycle)
+    // ============================================================
+    function toggleCycleChamps() {
+        if (!cycleSelect) return;
+
+        const cycle = cycleSelect.value;
+
+        if (cycle === '2e') {
+            // 2e cycle : afficher Coefficient ET Tendance
+            if (coefficientContainer) coefficientContainer.style.display = 'block';
+            if (coefficientNonApplicable) coefficientNonApplicable.style.display = 'none';
+
+            if (tendanceContainer) tendanceContainer.style.display = 'block';
+            if (tendanceNonApplicable) tendanceNonApplicable.style.display = 'none';
+        } else {
+            // 1er cycle : masquer Coefficient ET Tendance
+            if (coefficientContainer) coefficientContainer.style.display = 'none';
+            if (coefficientNonApplicable) coefficientNonApplicable.style.display = 'block';
+            if (coefficientSelect) coefficientSelect.value = '1';
+
+            if (tendanceContainer) tendanceContainer.style.display = 'none';
+            if (tendanceNonApplicable) tendanceNonApplicable.style.display = 'block';
+            if (tendanceSelect) tendanceSelect.value = '';
+        }
+    }
+
+    if (cycleSelect) {
+        cycleSelect.addEventListener('change', toggleCycleChamps);
+        toggleCycleChamps();
+    }
+
+    // ============================================================
+    // VALIDATION AVANT SOUMISSION
+    // ============================================================
+    const form = document.getElementById('matiereForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const nomMatiere = document.getElementById('id_nomMatiere');
+            const cycle = document.getElementById('id_cycle');
+
+            let erreur = false;
+
+            if (nomMatiere && !nomMatiere.value.trim()) {
+                nomMatiere.classList.add('is-invalid');
+                erreur = true;
+            } else if (nomMatiere) {
+                nomMatiere.classList.remove('is-invalid');
+            }
+
+            if (cycle && !cycle.value) {
+                cycle.classList.add('is-invalid');
+                erreur = true;
+            } else if (cycle) {
+                cycle.classList.remove('is-invalid');
+            }
+
+            if (erreur) {
+                e.preventDefault();
+                const premierErreur = document.querySelector('.is-invalid');
+                if (premierErreur) {
+                    premierErreur.focus();
+                    premierErreur.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    // NETTOYER LES ERREURS À LA SAISIE
+    // ============================================================
+    document.querySelectorAll('.form-control, .form-select').forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+        input.addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+});
+</script>
+{% endblock %}

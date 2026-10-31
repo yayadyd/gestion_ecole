@@ -1,0 +1,236 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Bulletin - {{ eleve.nom }} {{ eleve.prenom }}{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-file-alt me-2"></i>
+        Bulletin individuel
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:bulletins_classe' classe.id_classe trimestre annee_scolaire.idAnneeScolaire %}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour à la classe
+        </a>
+        <a href="{% url 'lycee:bulletin_eleve_pdf' inscription.id_inscription trimestre %}"
+           class="btn btn-danger btn-sm" target="_blank">
+            <i class="fas fa-file-pdf"></i> Imprimer PDF
+        </a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-11">
+        <div class="card shadow-sm">
+
+            <!-- En-tête du bulletin -->
+            <div class="card-header bg-primary text-white text-center py-3">
+                <h4 class="mb-1">BULLETIN DE NOTES</h4>
+                <h6 class="mb-0">{{ trimestre }} — Année scolaire {{ annee_scolaire.anneeScolaire }}</h6>
+            </div>
+
+            <div class="card-body">
+
+                <!-- Info élève -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th style="width: 130px;">Matricule :</th>
+                                <td><code class="fs-5">{{ eleve.matricule }}</code></td>
+                            </tr>
+                            <tr>
+                                <th>Nom et Prénom :</th>
+                                <td><strong>{{ eleve.nom }} {{ eleve.prenom }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Sexe :</th>
+                                <td>{{ eleve.get_sexe_display }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-borderless mb-0">
+                            <tr>
+                                <th style="width: 130px;">Classe :</th>
+                                <td><span class="badge bg-primary">{{ classe.nom }}</span></td>
+                            </tr>
+                            <tr>
+                                <th>Niveau :</th>
+                                <td>{{ classe.get_niveau_display }}</td>
+                            </tr>
+                            <tr>
+                                <th>Série :</th>
+                                <td>
+                                    {% if classe.serie %}
+                                        <span class="badge bg-info">{{ classe.get_serie_display }}</span>
+                                    {% else %}
+                                        <span class="badge bg-light text-dark">Commune Générale</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Tableau des notes -->
+                {% if resultat and resultat.details.exists %}
+                
+                {% if est_franco_arabe %}
+                    {# ========== VERSION FRANCO-ARABE ========== #}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Matières</th>
+                                    <th>Arabe</th>
+                                    <th class="text-center">Notes classe</th>
+                                    <th class="text-center">Notes compo /40</th>
+                                    <th class="text-center">Notes générales</th>
+                                    <th class="text-center">Coef</th>
+                                    <th class="text-center">Notes coef</th>
+                                    <th class="text-center">Appréciations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in details_enrichis %}
+                                <tr>
+                                    <td><strong>{{ d.matiere.nom }}</strong></td>
+                                    <td dir="rtl">{{ d.matiere.nom_arabe|default:"—" }}</td>
+                                    <td class="text-center">{{ d.note_classe|floatformat:2 }}</td>
+                                    <td class="text-center">{{ d.note_composition_40|floatformat:2 }}</td>
+                                    <td class="text-center"><strong>{{ d.moyenne_matiere|floatformat:2 }}</strong></td>
+                                    <td class="text-center">{{ d.coefficient|floatformat:1 }}</td>
+                                    <td class="text-center">{{ d.moyenne_coefficientee|floatformat:2 }}</td>
+                                    <td class="text-center">{{ d.appreciation|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    {# ========== VERSION CLASSIQUE ========== #}
+                    <div class="table-responsive mb-4">
+                        <table class="table table-bordered table-sm mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Matières</th>
+                                    <th class="text-center">Notes classe</th>
+                                    <th class="text-center">Notes compo /40</th>
+                                    <th class="text-center">Notes générales</th>
+                                    <th class="text-center">Coef</th>
+                                    <th class="text-center">Notes coef</th>
+                                    <th class="text-center">Appréciations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in details_enrichis %}
+                                <tr>
+                                    <td><strong>{{ d.matiere.nom }}</strong></td>
+                                    <td class="text-center">{{ d.note_classe|floatformat:2 }}</td>
+                                    <td class="text-center">{{ d.note_composition_40|floatformat:2 }}</td>
+                                    <td class="text-center"><strong>{{ d.moyenne_matiere|floatformat:2 }}</strong></td>
+                                    <td class="text-center">{{ d.coefficient|floatformat:1 }}</td>
+                                    <td class="text-center">{{ d.moyenne_coefficientee|floatformat:2 }}</td>
+                                    <td class="text-center">{{ d.appreciation|default:"—" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+
+                <!-- Résultats -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm table-striped">
+                            <tr>
+                                <th>Total notes coefficientées :</th>
+                                <td class="text-end"><strong>{{ resultat.total_notes_coefficientees|floatformat:2 }}</strong></td>
+                            </tr>
+                            <tr>
+                                <th>Total coefficients :</th>
+                                <td class="text-end"><strong>{{ resultat.total_coefficients|floatformat:1 }}</strong></td>
+                            </tr>
+                            <tr class="table-primary">
+                                <th>Moyenne générale :</th>
+                                <td class="text-end">
+                                    <strong class="fs-5">{{ resultat.moyenne_generale|floatformat:2 }}/20</strong>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm table-striped">
+                            <tr>
+                                <th>Rang :</th>
+                                <td class="text-end">
+                                    {% if resultat.rang == 1 %}
+                                        <span class="badge bg-warning text-dark fs-6">
+                                            <i class="fas fa-trophy"></i> 1er
+                                        </span>
+                                    {% elif resultat.rang %}
+                                        <span class="badge bg-secondary fs-6">{{ resultat.rang }}ème</span>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                    <small class="text-muted ms-2">sur {{ resultat.effectif_classe }} élèves</small>
+                                </td>
+                            </tr>
+                            {% if meilleur %}
+                            <tr>
+                                <th>Moyenne du 1er :</th>
+                                <td class="text-end">
+                                    <strong>{{ meilleur.moyenne_generale|floatformat:2 }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        ({{ meilleur.inscription.eleve.prenom }}
+                                        {{ meilleur.inscription.eleve.nom }})
+                                    </small>
+                                </td>
+                            </tr>
+                            {% endif %}
+                            <tr>
+                                <th>Appréciation :</th>
+                                <td class="text-end"><strong>{{ resultat.appreciation|default:"—" }}</strong></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Signatures -->
+                <div class="row mt-5 pt-3 border-top">
+                    <div class="col-md-6 text-center">
+                        <strong>Avis des Parents</strong>
+                        <br><br><br>
+                        _________________
+                    </div>
+                    <div class="col-md-6 text-center">
+                        <strong>Le Promoteur</strong>
+                        <br><br><br>
+                        _________________
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="alert alert-warning text-center py-5">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 text-warning"></i>
+                    <h5>Aucun bulletin disponible</h5>
+                    <p class="mb-0">
+                        Les notes pour ce trimestre n'ont pas encore été saisies
+                        ou les moyennes n'ont pas été calculées.
+                    </p>
+                    <a href="{% url 'lycee:saisie_notes_par_classe' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-edit"></i> Saisir les notes
+                    </a>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

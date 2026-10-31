@@ -1,0 +1,237 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Résultats{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+
+    <!-- EN-TÊTE -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h4 class="mb-0">
+            <i class="fas fa-award me-2"></i>
+            Résultats scolaires
+            {% if annee_selectionnee %}
+                <small class="text-muted">— {{ annee_selectionnee.anneeScolaire }}</small>
+            {% endif %}
+        </h4>
+
+        <form method="get" class="d-flex gap-2">
+            <input type="hidden" name="section" value="{{ section }}">
+            {% if section != 'global' %}
+                <input type="hidden" name="periode" value="{{ periode|default:'' }}">
+                <input type="hidden" name="classe" value="{{ classe_id|default:'' }}">
+            {% endif %}
+            <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for a in annees_scolaires %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if a == annee_selectionnee %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- SECTIONS -->
+    <ul class="nav nav-pills mb-3">
+        {% for choix in sections_choix %}
+            <li class="nav-item">
+                <a class="nav-link {% if choix.actif %}active{% endif %}"
+                   href="?{% if annee_selectionnee %}annee={{ annee_selectionnee.idAnneeScolaire }}&amp;{% endif %}section={{ choix.code }}">
+                    {{ choix.label }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    {% if section == 'global' %}
+
+        <!-- SYNTHÈSE -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="fas fa-layer-group me-1"></i> Synthèse par section</h6>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Section</th>
+                            <th>Période affichée</th>
+                            <th class="text-center">Résultats</th>
+                            <th class="text-center">Inscriptions</th>
+                            <th class="text-end">Moyenne</th>
+                            <th>État</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for l in resume.lignes %}
+                            <tr>
+                                <td>
+                                    <a href="?{% if annee_selectionnee %}annee={{ annee_selectionnee.idAnneeScolaire }}&amp;{% endif %}section={{ l.section }}">
+                                        {{ l.label }}
+                                    </a>
+                                </td>
+                                <td>{{ l.periode|default:"—" }}</td>
+                                <td class="text-center">{{ l.nb_resultats }}</td>
+                                <td class="text-center">{{ l.nb_inscriptions }}</td>
+                                <td class="text-end">{{ l.moyenne|default_if_none:"—" }}</td>
+                                <td>
+                                    {% if l.statut == 'calculé' %}
+                                        <span class="badge bg-success">calculé</span>
+                                    {% elif l.statut == 'à calculer' %}
+                                        <span class="badge bg-warning text-dark">à calculer</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">aucune période</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light fw-bold">
+                        <tr>
+                            <td colspan="2">Total</td>
+                            <td class="text-center">{{ resume.nb_resultats }}</td>
+                            <td class="text-center">{{ resume.nb_inscriptions }}</td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+
+    {% else %}
+
+        <!-- FILTRES -->
+        <form method="get" class="row g-2 mb-3">
+            <input type="hidden" name="section" value="{{ section }}">
+            <input type="hidden" name="annee" value="{{ annee_selectionnee.idAnneeScolaire|default:'' }}">
+            <div class="col-md-4">
+                <select name="periode" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for p in periodes %}
+                        <option value="{{ p.code }}" {% if p.code == periode %}selected{% endif %}>
+                            {{ p.label }}
+                        </option>
+                    {% empty %}
+                        <option value="">Aucune période disponible</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="classe" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                        <option value="{{ c.id }}" {% if classe_id == c.id|stringformat:"s" %}selected{% endif %}>
+                            {{ c.nom }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary btn-sm w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+
+        <!-- INDICATEURS -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body py-2">
+                        <small class="text-uppercase">Résultats</small>
+                        <h4 class="mb-0">{{ nb_resultats }} / {{ nb_inscriptions }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body py-2">
+                        <small class="text-uppercase">Moyenne section</small>
+                        <h4 class="mb-0">
+                            {% if moyenne_section %}{{ moyenne_section|floatformat:2 }}{% else %}—{% endif %}
+                        </h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body py-2">
+                        <small class="text-uppercase">Période</small>
+                        <h4 class="mb-0">{{ libelle_periode|default:"—" }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card {% if statut == 'calculé' %}bg-secondary{% else %}bg-warning text-dark{% endif %} h-100">
+                    <div class="card-body py-2">
+                        <small class="text-uppercase">État</small>
+                        <h4 class="mb-0">{{ statut }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if nb_resultats == 0 %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-1"></i>
+                Aucun résultat enregistré pour <strong>{{ libelle_periode|default:"cette période" }}</strong>.
+                {% if nb_inscriptions %}
+                    Les moyennes doivent d'abord être calculées depuis les pages de saisie/calcul des notes.
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- TABLEAU -->
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0 align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Élève</th>
+                            <th>Matricule</th>
+                            <th>Classe</th>
+                            <th class="text-end">Moyenne</th>
+                            <th class="text-center">Rang</th>
+                            <th>Appréciation</th>
+                            <th class="text-center">Bulletin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in lignes %}
+                            <tr>
+                                <td>{{ r.eleve }}</td>
+                                <td><code>{{ r.matricule }}</code></td>
+                                <td>{{ r.classe }}</td>
+                                <td class="text-end">
+                                    <strong>{{ r.moyenne|floatformat:2 }}</strong>
+                                </td>
+                                <td class="text-center">
+                                    {% if r.rang %}{{ r.rang }}{% else %}—{% endif %}
+                                </td>
+                                <td>{{ r.appreciation|default:"—" }}</td>
+                                <td class="text-center">
+                                    {% if r.lien_bulletin %}
+                                        <a href="{{ r.lien_bulletin }}" class="btn btn-sm btn-outline-primary"
+                                           title="Voir le bulletin">
+                                            <i class="fas fa-file-alt"></i>
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">
+                                    Aucun résultat à afficher.
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    {% endif %}
+</div>
+{% endblock %}

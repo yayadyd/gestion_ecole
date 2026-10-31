@@ -1,0 +1,507 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} inscription{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-user-plus me-2"></i>
+        {% if form.instance.pk %}
+            Modifier l'inscription : <strong>{{ form.instance.eleve }}</strong>
+        {% else %}
+            Nouvelle inscription
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:inscription_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+       class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" novalidate id="inscriptionForm">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- ============================================ -->
+            <!-- 1. ÉLÈVE (RECHERCHE AJAX)                    -->
+            <!-- ============================================ -->
+            <h6 class="text-muted border-bottom pb-2 mb-3">
+                <i class="fas fa-user-graduate me-1"></i> 1. Élève
+            </h6>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.classe.id_for_label }}" class="form-label">
+                        Classe <span class="text-danger">*</span>
+                    </label>
+                    {{ form.classe }}
+                    {% if form.classe.errors %}
+                        <div class="text-danger small">{{ form.classe.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.anneeScolaire.id_for_label }}" class="form-label">
+                        Année scolaire <span class="text-danger">*</span>
+                    </label>
+                    {{ form.anneeScolaire }}
+                    {% if form.anneeScolaire.errors %}
+                        <div class="text-danger small">{{ form.anneeScolaire.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Champ de recherche d'élève -->
+            <div class="mb-3 position-relative">
+                <label for="{{ form.recherche_eleve.id_for_label }}" class="form-label">
+                    Rechercher un élève <span class="text-danger">*</span>
+                </label>
+                {{ form.recherche_eleve }}
+                <small class="text-muted">Tapez au moins 2 caractères (nom, prénom ou matricule)</small>
+
+                <!-- Liste déroulante des résultats AJAX -->
+                <div id="resultatsRecherche"
+                     class="list-group position-absolute w-100 shadow-sm"
+                     style="z-index: 1050; display: none; max-height: 300px; overflow-y: auto;">
+                </div>
+
+                {% if form.eleve.errors %}
+                    <div class="text-danger small mt-1">
+                        <i class="fas fa-exclamation-circle"></i> Veuillez sélectionner un élève dans la liste.
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Champ caché : élève sélectionné -->
+            {{ form.eleve }}
+            {{ form.eleve_id }}
+            {% if form.eleve.errors %}
+                <div class="text-danger small mb-2">{{ form.eleve.errors }}</div>
+            {% endif %}
+
+            <!-- Carte info élève (remplie par JS) -->
+            <div id="infoEleve" class="alert alert-secondary {% if not form.instance.pk %}d-none{% endif %} mb-3">
+                <div class="d-flex align-items-start">
+                    <i class="fas fa-user-circle fa-2x me-3 text-primary"></i>
+                    <div class="flex-grow-1">
+                        <strong id="infoNom">
+                            {% if form.instance.pk %}{{ form.instance.eleve.nomEleve }} {{ form.instance.eleve.prenomEleve }}{% endif %}
+                        </strong>
+                        <br>
+                        <small>
+                            Matricule : <span id="infoMatricule">{% if form.instance.pk %}{{ form.instance.eleve.matricule }}{% endif %}</span> —
+                            Né(e) le : <span id="infoDateNaiss">{% if form.instance.pk %}{{ form.instance.eleve.dateNaiss|date:"d/m/Y" }}{% endif %}</span> —
+                            Lieu : <span id="infoLieuNaiss">{% if form.instance.pk %}{{ form.instance.eleve.lieuNaiss }}{% endif %}</span>
+                        </small>
+                        <div id="alerteDejaInscrit" class="mt-2 d-none">
+                            <span class="badge bg-warning text-dark">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Déjà inscrit cette année
+                            </span>
+                        </div>
+                    </div>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger align-self-start"
+                            id="btnRetirerEleve"
+                            title="Retirer cet élève">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 2. CAS PARTICULIER                            -->
+            <!-- ============================================ -->
+            {% if ecole.mode_frais_inscription == 'unique' %}
+            <div class="card border-warning mb-3">
+                <div class="card-header bg-warning text-dark">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-1"></i> Cas particulier
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="form-check">
+                        {{ form.frais_inscription_historique }}
+                        <label class="form-check-label" for="{{ form.frais_inscription_historique.id_for_label }}">
+                            <strong>Frais d'inscription déjà payés (avant l'application)</strong>
+                        </label>
+                    </div>
+                    <small class="text-muted d-block mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Cocher si l'élève a déjà payé ses frais d'inscription
+                        avant l'utilisation de cette application.
+                    </small>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ============================================ -->
+            <!-- 3. RÉCAPITULATIF DES FRAIS                    -->
+            <!-- ============================================ -->
+            <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+                <i class="fas fa-coins me-1"></i> 2. Frais applicables
+            </h6>
+
+            <div id="infoFrais" class="alert alert-light border d-none">
+                <div class="row text-center">
+                    <div class="col-md-6 border-end">
+                        <small class="text-muted d-block">Frais d'inscription</small>
+                        <strong id="fraisInscriptionAffiche">—</strong>
+                        {% if ecole.mode_frais_inscription == 'unique' %}
+                            <br><small class="text-muted">(une seule fois dans le cursus)</small>
+                        {% else %}
+                            <br><small class="text-muted">(chaque année)</small>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Frais de scolarité annuels</small>
+                        <strong id="fraisScolariteAffiche">—</strong>
+                        <br><small class="text-muted" id="modeScolariteAffiche"></small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message d'erreur si les frais ne peuvent pas être chargés -->
+            <div id="erreurFrais" class="alert alert-warning d-none">
+                <i class="fas fa-exclamation-triangle me-1"></i>
+                <span id="erreurFraisTexte"></span>
+            </div>
+
+            <!-- BOUTONS -->
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <a href="{% url 'fondamental:inscription_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                   class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    {% if form.instance.pk %}Enregistrer{% else %}Créer l'inscription{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // ============================================================
+    // RÉFÉRENCES
+    // ============================================================
+    const champRecherche      = document.getElementById('rechercheEleve');
+    const champEleveCache     = document.getElementById('eleveId');
+    const champEleveSelect    = document.getElementById('id_eleve');
+    const selectClasse        = document.getElementById('classeSelect');
+    const selectAnnee         = document.getElementById('{{ form.anneeScolaire.id_for_label }}');
+    const infoEleve           = document.getElementById('infoEleve');
+    const infoFrais           = document.getElementById('infoFrais');
+    const erreurFrais         = document.getElementById('erreurFrais');
+    const erreurFraisTexte    = document.getElementById('erreurFraisTexte');
+    const alerteDejaInscrit   = document.getElementById('alerteDejaInscrit');
+    const resultatsRecherche  = document.getElementById('resultatsRecherche');
+    const btnRetirerEleve     = document.getElementById('btnRetirerEleve');
+
+    // ============================================================
+    // VARIABLES DJANGO
+    // ============================================================
+    const urlApiRecherche = "{% url 'fondamental:api_recherche_eleves' %}";
+    const urlApiClasse    = "{% url 'fondamental:api_classe_info' %}";
+
+    // ✅ Fallback si l'API ne renvoie pas le mode (ne devrait plus arriver)
+    const modeScolariteFallback = "{{ ecole.mode_frais_scolarite|default:'mensuel' }}";
+    const nombreTranchesFallback = {{ ecole.nombre_tranches|default:4 }};
+
+    // ✅ Map JS indexée pour éviter l'injection HTML via data-*
+    const elevesDataMap = {};
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function escapeHtml(str) {
+        if (str === null || str === undefined) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function cacherResultats() {
+        if (resultatsRecherche) {
+            resultatsRecherche.style.display = 'none';
+            resultatsRecherche.innerHTML = '';
+        }
+    }
+
+    function cacherFrais() {
+        if (infoFrais) infoFrais.classList.add('d-none');
+    }
+
+    function afficherErreurFrais(message) {
+        cacherFrais();
+        if (erreurFrais && erreurFraisTexte) {
+            erreurFraisTexte.textContent = message;
+            erreurFrais.classList.remove('d-none');
+        }
+    }
+
+    function cacherErreurFrais() {
+        if (erreurFrais) erreurFrais.classList.add('d-none');
+    }
+
+    // ============================================================
+    // AFFICHER INFO ÉLÈVE
+    // ============================================================
+    function afficherInfoEleve(eleve) {
+        if (champEleveCache) champEleveCache.value = eleve.id;
+        if (champEleveSelect) champEleveSelect.value = eleve.id;
+        if (champRecherche) {
+            champRecherche.value = `${eleve.matricule} — ${eleve.nom} ${eleve.prenom}`;
+        }
+
+        const elNom         = document.getElementById('infoNom');
+        const elMatricule   = document.getElementById('infoMatricule');
+        const elDateNaiss   = document.getElementById('infoDateNaiss');
+        const elLieuNaiss   = document.getElementById('infoLieuNaiss');
+
+        if (elNom) elNom.textContent = `${eleve.nom} ${eleve.prenom}`;
+        if (elMatricule) elMatricule.textContent = eleve.matricule || '—';
+        if (elDateNaiss) elDateNaiss.textContent = eleve.date_naiss || '—';
+        if (elLieuNaiss) elLieuNaiss.textContent = eleve.lieu_naiss || '—';
+
+        if (infoEleve) infoEleve.classList.remove('d-none');
+
+        if (alerteDejaInscrit) {
+            if (eleve.deja_inscrit) {
+                alerteDejaInscrit.classList.remove('d-none');
+            } else {
+                alerteDejaInscrit.classList.add('d-none');
+            }
+        }
+
+        cacherResultats();
+    }
+
+    function retirerEleve() {
+        if (champEleveCache) champEleveCache.value = '';
+        if (champEleveSelect) champEleveSelect.value = '';
+        if (champRecherche) champRecherche.value = '';
+        if (infoEleve) infoEleve.classList.add('d-none');
+        if (alerteDejaInscrit) alerteDejaInscrit.classList.add('d-none');
+    }
+
+    // ============================================================
+    // AFFICHER LES RÉSULTATS DE RECHERCHE
+    // ============================================================
+    function afficherResultats(eleves) {
+        if (!resultatsRecherche) return;
+
+        if (!eleves || eleves.length === 0) {
+            resultatsRecherche.innerHTML = `
+                <div class="list-group-item text-muted">
+                    <i class="fas fa-info-circle me-1"></i> Aucun élève trouvé
+                </div>
+            `;
+            resultatsRecherche.style.display = 'block';
+            return;
+        }
+
+        Object.keys(elevesDataMap).forEach(k => delete elevesDataMap[k]);
+
+        let html = '';
+        eleves.forEach((eleve, idx) => {
+            const key = `eleve_${idx}`;
+            elevesDataMap[key] = eleve;
+
+            const nomSafe       = escapeHtml(eleve.nom);
+            const prenomSafe    = escapeHtml(eleve.prenom);
+            const matriculeSafe = escapeHtml(eleve.matricule || '—');
+            const dateSafe      = escapeHtml(eleve.date_naiss || '');
+            const lieuSafe      = escapeHtml(eleve.lieu_naiss || '');
+
+            const badgeDejaInscrit = eleve.deja_inscrit
+                ? '<span class="badge bg-warning text-dark ms-2"><i class="fas fa-exclamation-triangle"></i> Déjà inscrit</span>'
+                : '';
+
+            html += `
+                <button type="button"
+                        class="list-group-item list-group-item-action resultat-item"
+                        data-eleve-key="${key}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>${nomSafe} ${prenomSafe}</strong>
+                            ${badgeDejaInscrit}
+                            <br>
+                            <small class="text-muted">
+                                <code>${matriculeSafe}</code>
+                                ${dateSafe ? ' | Né(e) le : ' + dateSafe : ''}
+                                ${lieuSafe ? ' à ' + lieuSafe : ''}
+                            </small>
+                        </div>
+                        <i class="fas fa-chevron-right text-muted"></i>
+                    </div>
+                </button>
+            `;
+        });
+
+        resultatsRecherche.innerHTML = html;
+        resultatsRecherche.style.display = 'block';
+
+        resultatsRecherche.querySelectorAll('.resultat-item').forEach(item => {
+            item.addEventListener('click', function () {
+                const eleve = elevesDataMap[this.dataset.eleveKey];
+                if (eleve) afficherInfoEleve(eleve);
+            });
+        });
+    }
+
+    // ============================================================
+    // RECHERCHE AJAX (avec debounce)
+    // ============================================================
+    let timer = null;
+    if (champRecherche) {
+        champRecherche.addEventListener('input', function () {
+            clearTimeout(timer);
+            const q = this.value.trim();
+
+            if (q.length < 2) {
+                cacherResultats();
+                return;
+            }
+
+            timer = setTimeout(() => {
+                fetch(`${urlApiRecherche}?q=${encodeURIComponent(q)}`)
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            afficherResultats(data.eleves);
+                        } else {
+                            cacherResultats();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erreur recherche :', error);
+                        cacherResultats();
+                    });
+            }, 300);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (champRecherche && !champRecherche.contains(e.target) &&
+                resultatsRecherche && !resultatsRecherche.contains(e.target)) {
+                cacherResultats();
+            }
+        });
+    }
+
+    // ============================================================
+    // BOUTON RETIRER ÉLÈVE
+    // ============================================================
+    if (btnRetirerEleve) {
+        btnRetirerEleve.addEventListener('click', retirerEleve);
+    }
+
+    // ============================================================
+    // AFFICHAGE DES FRAIS SELON CLASSE + ANNÉE
+    // ============================================================
+    function majInfosFrais() {
+        const classeId = selectClasse ? selectClasse.value : '';
+        const anneeId  = selectAnnee ? selectAnnee.value : '';
+
+        if (!classeId) {
+            cacherFrais();
+            cacherErreurFrais();
+            return;
+        }
+
+        // ✅ Toujours transmettre l'année pour obtenir les bons frais
+        let url = `${urlApiClasse}?classe=${classeId}`;
+        if (anneeId) url += `&annee=${anneeId}`;
+
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) {
+                    // ✅ Afficher l'erreur au lieu de garder une valeur obsolète
+                    afficherErreurFrais(
+                        data.error || "Impossible de charger les frais pour cette classe/année."
+                    );
+                    return;
+                }
+
+                cacherErreurFrais();
+
+                const elFraisInscription = document.getElementById('fraisInscriptionAffiche');
+                const elFraisScolarite   = document.getElementById('fraisScolariteAffiche');
+                const elModeScolarite    = document.getElementById('modeScolariteAffiche');
+
+                if (elFraisInscription) {
+                    elFraisInscription.textContent =
+                        (data.frais_inscription || 0).toLocaleString('fr-FR') + ' FCFA';
+                }
+
+                const montant = data.frais_scolarite_annuel || 0;
+                if (elFraisScolarite) {
+                    elFraisScolarite.textContent =
+                        montant.toLocaleString('fr-FR') + ' FCFA';
+                }
+
+                // ✅ Mode de scolarité : priorité à la réponse API
+                const mode        = data.mode_frais_scolarite || modeScolariteFallback;
+                const nbTranches  = data.nombre_tranches || nombreTranchesFallback;
+
+                let texteMode = '';
+                switch (mode) {
+                    case 'mensuel':
+                        texteMode = `soit 9 versements de ${Math.round(montant / 9).toLocaleString('fr-FR')} FCFA`;
+                        break;
+                    case 'trimestriel':
+                        texteMode = `soit 3 versements de ${Math.round(montant / 3).toLocaleString('fr-FR')} FCFA`;
+                        break;
+                    case 'tranches':
+                        texteMode = `soit ${nbTranches} versements de ${Math.round(montant / nbTranches).toLocaleString('fr-FR')} FCFA`;
+                        break;
+                    case 'annuel':
+                        texteMode = 'soit 1 versement annuel';
+                        break;
+                    case 'unique':
+                        texteMode = 'soit 1 seul versement pour tout le cursus';
+                        break;
+                }
+                if (elModeScolarite) elModeScolarite.textContent = texteMode;
+
+                if (infoFrais) infoFrais.classList.remove('d-none');
+            })
+            .catch(error => {
+                console.error('Erreur chargement frais :', error);
+                afficherErreurFrais("Erreur réseau lors du chargement des frais.");
+            });
+    }
+
+    // ✅ Ordre correct : selectAnnee est défini avant le premier appel
+    if (selectClasse) {
+        selectClasse.addEventListener('change', majInfosFrais);
+    }
+    if (selectAnnee) {
+        selectAnnee.addEventListener('change', majInfosFrais);
+    }
+
+    // Premier chargement (édition ou pré-sélection)
+    if (selectClasse && selectClasse.value) {
+        majInfosFrais();
+    }
+});
+</script>
+{% endblock %}

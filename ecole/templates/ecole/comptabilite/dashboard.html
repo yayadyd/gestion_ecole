@@ -1,0 +1,345 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Comptabilité{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+
+    <!-- EN-TÊTE -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h4 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            Tableau de bord comptable
+            {% if annee_encours %}
+                <small class="text-muted">— {{ annee_encours }}</small>
+            {% endif %}
+        </h4>
+
+        <div class="d-flex gap-2">
+            <form method="get">
+                <input type="hidden" name="section" value="{{ section_active }}">
+                <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+                    {% for a in annees_scolaires %}
+                        <option value="{{ a.idAnneeScolaire }}"
+                                {% if a == annee_selectionnee %}selected{% endif %}>
+                            {{ a.anneeScolaire }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+            <a href="{% url 'fondamental:rapports_comptables' %}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-file-invoice"></i> Rapports détaillés
+            </a>
+            <a href="{% url 'fondamental:depense_list' %}" class="btn btn-outline-danger btn-sm">
+                <i class="fas fa-list"></i> Dépenses
+            </a>
+            <a href="{% url 'fondamental:depense_create' %}" class="btn btn-danger btn-sm">
+                <i class="fas fa-plus"></i> Nouvelle dépense
+            </a>
+            <a href="{% url 'fondamental:recette_list' %}" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-list"></i> Recettes
+            </a>
+            <a href="{% url 'fondamental:recette_create' %}" class="btn btn-success btn-sm">
+                <i class="fas fa-plus"></i> Nouvelle recette
+            </a>
+        </div>
+    </div>
+
+    <!-- SÉLECTEUR DE SECTION -->
+    <ul class="nav nav-pills mb-3">
+        {% for choix in sections_choix %}
+            <li class="nav-item">
+                <a class="nav-link {% if choix.actif %}active{% endif %}"
+                   href="?{% if annee_selectionnee %}annee={{ annee_selectionnee.idAnneeScolaire }}&amp;{% endif %}section={{ choix.code }}">
+                    {% if choix.code == 'global' %}
+                        <i class="fas fa-globe me-1"></i>
+                    {% endif %}
+                    {{ choix.label }}
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+
+    <!-- RÉPARTITION PAR SECTION -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h6 class="mb-0">
+                <i class="fas fa-layer-group me-1"></i>
+                Répartition par section — {{ annee_encours|default:"—" }}
+            </h6>
+            <small class="text-muted">
+                Vue affichée : <strong>{{ section_courante_label }}</strong>
+            </small>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Section</th>
+                        <th class="text-end">Recettes</th>
+                        <th class="text-end">Dépenses</th>
+                        <th class="text-end">Résultat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sections.values %}
+                        <tr {% if section_active == s.code %}class="table-active"{% endif %}>
+                            <td>
+                                <a href="?{% if annee_selectionnee %}annee={{ annee_selectionnee.idAnneeScolaire }}&amp;{% endif %}section={{ s.code }}">
+                                    {{ s.label }}
+                                </a>
+                            </td>
+                            <td class="text-end">{{ s.recettes|floatformat:0 }}</td>
+                            <td class="text-end">{{ s.depenses|floatformat:0 }}</td>
+                            <td class="text-end {% if s.resultat < 0 %}text-danger{% else %}text-success{% endif %}">
+                                {{ s.resultat|floatformat:0 }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot class="table-light fw-bold">
+                    <tr>
+                        <td>Global</td>
+                        <td class="text-end">{{ global.recettes|floatformat:0 }}</td>
+                        <td class="text-end">{{ global.depenses|floatformat:0 }}</td>
+                        <td class="text-end {% if global.resultat < 0 %}text-danger{% else %}text-success{% endif %}">
+                            {{ global.resultat|floatformat:0 }}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- SYNTHÈSE -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase small mb-1">Total Recettes</h6>
+                    <h3 class="mb-0">{{ total_recettes|floatformat:0 }} FCFA</h3>
+                    <small>
+                        Frais : {{ recettes_frais|floatformat:0 }} |
+                        Scolarité : {{ recettes_scolarite|floatformat:0 }} |
+                        Autres : {{ recettes_autres|floatformat:0 }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-danger text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase small mb-1">Total Dépenses</h6>
+                    <h3 class="mb-0">{{ total_depenses|floatformat:0 }} FCFA</h3>
+                    <small>{{ nb_depenses }} dépense{{ nb_depenses|pluralize }}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card {% if resultat_positif %}bg-primary{% else %}bg-warning text-dark{% endif %} text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase small mb-1">Résultat</h6>
+                    <h3 class="mb-0">
+                        {% if resultat_positif %}+{% endif %}{{ resultat|floatformat:0 }} FCFA
+                    </h3>
+                    <small>{% if resultat_positif %}Excédent{% else %}Déficit{% endif %}</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body">
+                    <h6 class="text-uppercase small mb-1">Paiements</h6>
+                    <h3 class="mb-0">{{ nb_paiements }}</h3>
+                    <small>Dont {{ nb_recettes_autres }} autre{{ nb_recettes_autres|pluralize }} recette{{ nb_recettes_autres|pluralize }}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRAPHIQUES -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">
+                        <i class="fas fa-chart-bar me-1"></i>
+                        Évolution mensuelle — 12 mois (Sept → Août)
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartEvolution" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="fas fa-chart-pie me-1"></i> Dépenses par catégorie</h6>
+                </div>
+                <div class="card-body">
+                    <canvas id="chartDepenses" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RÉPARTITION DÉPENSES DÉTAIL -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h6 class="mb-0"><i class="fas fa-arrow-down me-1"></i> Dépenses par catégorie</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if depenses_par_categorie %}
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th class="text-end">Montant</th>
+                                    <th class="text-end">%</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in depenses_par_categorie %}
+                                <tr>
+                                    <td>{{ d.categorie__nom }}</td>
+                                    <td class="text-end">{{ d.total|floatformat:0 }} FCFA</td>
+                                    <td class="text-end">{{ d.pourcentage }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">Aucune dépense</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h6 class="mb-0"><i class="fas fa-arrow-up me-1"></i> Recettes hors paiements</h6>
+                </div>
+                <div class="card-body p-0">
+                    {% if recettes_par_categorie %}
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Catégorie</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for r in recettes_par_categorie %}
+                                <tr>
+                                    <td>{{ r.categorie__nom }}</td>
+                                    <td class="text-end">{{ r.total|floatformat:0 }} FCFA</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-center text-muted">Aucune recette hors paiements</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- DERNIÈRES DÉPENSES -->
+    {% if dernieres_depenses %}
+    <div class="card shadow-sm mt-4">
+        <div class="card-header bg-light d-flex justify-content-between">
+            <h6 class="mb-0"><i class="fas fa-history me-1"></i> Dernières dépenses</h6>
+            <a href="{% url 'fondamental:depense_list' %}" class="btn btn-sm btn-outline-secondary">Voir tout</a>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Libellé</th>
+                        <th>Catégorie</th>
+                        <th class="text-end">Montant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for d in dernieres_depenses %}
+                    <tr>
+                        <td>{{ d.date_depense|date:"d/m/Y" }}</td>
+                        <td>{{ d.libelle }}</td>
+                        <td><span class="badge bg-secondary">{{ d.categorie.nom }}</span></td>
+                        <td class="text-end">{{ d.montant|floatformat:0 }} FCFA</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Données JSON injectées par la vue
+    const evolutionData = {{ evolution_mensuelle_json|safe }};
+    const depensesData = {{ depenses_categorie_json|safe }};
+
+    // --- Graphique évolution mensuelle (12 mois) ---
+    if (evolutionData.length > 0) {
+        new Chart(document.getElementById('chartEvolution'), {
+            type: 'bar',
+            data: {
+                labels: evolutionData.map(d => d.label),
+                datasets: [
+                    {
+                        label: 'Recettes',
+                        data: evolutionData.map(d => d.recettes),
+                        backgroundColor: 'rgba(40, 167, 69, 0.7)',
+                    },
+                    {
+                        label: 'Dépenses',
+                        data: evolutionData.map(d => d.depenses),
+                        backgroundColor: 'rgba(220, 53, 69, 0.7)',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'top' } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    }
+
+    // --- Graphique dépenses par catégorie ---
+    if (depensesData.length > 0) {
+        new Chart(document.getElementById('chartDepenses'), {
+            type: 'doughnut',
+            data: {
+                labels: depensesData.map(d => d.label),
+                datasets: [{
+                    data: depensesData.map(d => d.value),
+                    backgroundColor: [
+                        '#dc3545', '#fd7e14', '#ffc107', '#20c997',
+                        '#0dcaf0', '#0d6efd', '#6610f2', '#d63384',
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

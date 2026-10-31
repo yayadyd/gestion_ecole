@@ -1,0 +1,232 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Matières par classe (Lycée){% endblock %}
+
+{% block lycee_content %}
+
+<!-- En-tête général -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="fas fa-book-reader me-2"></i>
+        Matières par classe — Lycée
+        {% if niveau_filtre %}
+        <span class="badge bg-primary ms-2">
+            {% if niveau_filtre == '10' %}10ème Année
+            {% elif niveau_filtre == '11' %}11ème Année
+            {% else %}Terminale{% endif %}
+        </span>
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:matiere_classe_lycee_create' %}{% if niveau_filtre %}?niveau={{ niveau_filtre }}{% endif %}{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}"
+       class="btn btn-primary">
+        <i class="fas fa-plus"></i> Associer une matière
+    </a>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-3">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body py-2">
+                <h6 class="mb-0">Total associations</h6>
+                <h3 class="mb-0">{{ nb_total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body py-2">
+                <h6 class="mb-0">10ème Année</h6>
+                <h3 class="mb-0">{{ nb_10 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body py-2">
+                <h6 class="mb-0">11ème Année</h6>
+                <h3 class="mb-0">{{ nb_11 }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body py-2">
+                <h6 class="mb-0">Terminale</h6>
+                <h3 class="mb-0">{{ nb_12 }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <!-- Filtre Année -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Année scolaire</label>
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}" 
+                            {% if annee_filtre == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtre Niveau -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Niveau</label>
+                <select name="niveau" class="form-select" onchange="this.form.submit()">
+                    <option value="">Tous les niveaux</option>
+                    <option value="10" {% if niveau_filtre == '10' %}selected{% endif %}>10ème Année</option>
+                    <option value="11" {% if niveau_filtre == '11' %}selected{% endif %}>11ème Année</option>
+                    <option value="12" {% if niveau_filtre == '12' %}selected{% endif %}>Terminale</option>
+                </select>
+            </div>
+
+            <!-- Filtre Classe -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Classe</label>
+                <select name="classe" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id_classe }}"
+                            {% if classe_id == c.id_classe|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nom }}
+                        {% if c.serie %} ({{ c.get_serie_display }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Bouton Réinitialiser -->
+            <div class="col-md-3">
+                <a href="{% url 'lycee:matiere_classe_lycee_list' %}" class="btn btn-outline-secondary w-100">
+                    <i class="fas fa-sync-alt"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste par classe -->
+{% for item in liste_classes %}
+    {% with classe=item.classe matieres=item.matieres nb_matieres=item.nb_matieres %}
+    <div class="card mb-3 shadow-sm">
+        <!-- En-tête de la carte -->
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-chalkboard me-2"></i>
+                {{ classe.nom }}
+                <span class="badge bg-light text-dark ms-2">
+                    {{ nb_matieres }} matière{{ nb_matieres|pluralize }}
+                </span>
+                <span class="badge bg-light text-dark ms-1">
+                    {{ classe.get_niveau_display }}
+                    {% if classe.serie %} — {{ classe.get_serie_display }}{% endif %}
+                </span>
+            </h5>
+            
+            <!-- Boutons d'action par classe -->
+            <div class="d-flex gap-2">
+                <!-- ✅ Vue de copie : nécessite un formulaire car elle modifie des données -->
+                <a href="{% url 'lycee:matiere_classe_lycee_copier' classe.id_classe %}" 
+                   class="btn btn-sm btn-warning" title="Copier les matières vers une autre classe">
+                    <i class="fas fa-copy"></i> Copier (Ouvre un formulaire)
+                </a>
+                <a href="{% url 'lycee:matiere_classe_lycee_create' %}?classe={{ classe.id_classe }}"
+                   class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Ajouter
+                </a>
+            </div>
+        </div>
+        
+        <!-- Corps de la carte -->
+        <div class="card-body p-0">
+            {% if matieres %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 60px;">Ordre</th>
+                            <th>Nom (français)</th>
+                            {% if est_franco_arabe %}
+                                <th>Nom arabe</th>
+                            {% endif %}
+                            <th>Domaine</th>
+                            <th class="text-center">Coefficient</th>
+                            <th class="text-center">Obligatoire</th>
+                            <th class="text-center" style="width: 120px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mc in matieres %}
+                        <tr>
+                            <td>
+                                <span class="badge bg-secondary">{{ mc.ordre_affichage }}</span>
+                            </td>
+                            <td><strong>{{ mc.matiere.nom }}</strong></td>
+                            {% if est_franco_arabe %}
+                                <td dir="rtl">{{ mc.matiere.nom_arabe|default:"—" }}</td>
+                            {% endif %}
+                            <td>
+                                <span class="badge bg-info">{{ mc.matiere.get_domaine_display }}</span>
+                            </td>
+                            <td class="text-center">
+                                {% if mc.coefficient_affiche %}
+                                    <span class="badge bg-success fs-6">{{ mc.coefficient_affiche }}</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                {% if mc.obligatoire %}
+                                    <i class="fas fa-check-circle text-success"></i>
+                                {% else %}
+                                    <i class="fas fa-times-circle text-muted"></i>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'lycee:matiere_classe_lycee_update' mc.pk %}"
+                                       class="btn btn-warning" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'lycee:matiere_classe_lycee_delete' mc.pk %}"
+                                       class="btn btn-danger" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning mb-0 text-center py-3">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Aucune matière associée à cette classe.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endwith %}
+{% empty %}
+<div class="alert alert-info text-center py-4">
+    <i class="fas fa-info-circle fa-2x mb-3"></i>
+    <p class="mb-2">
+        Aucune classe trouvée
+        {% if niveau_filtre %}pour le niveau sélectionné{% endif %}
+        {% if annee_filtre %}pour cette année scolaire{% endif %}.
+    </p>
+    <a href="{% url 'lycee:matiere_classe_lycee_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Associer une première matière
+    </a>
+</div>
+{% endfor %}
+
+{% endblock %}

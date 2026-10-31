@@ -1,0 +1,335 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Paramètres de l'école{% endblock %}
+
+{% block lycee_content %}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+
+        <!-- En-tête -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+            <h4 class="mb-0">
+                <i class="fas fa-school me-2"></i>
+                Paramètres de l'établissement
+            </h4>
+            <span class="badge bg-primary">
+                <i class="fas fa-share-alt me-1"></i>
+                Partagé avec le fondamental
+            </span>
+        </div>
+
+        <div class="alert alert-info small">
+            <i class="fas fa-info-circle me-1"></i>
+            Ces paramètres sont <strong>communs</strong> au fondamental et au lycée.
+            Toute modification affecte les deux sections.
+        </div>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                </div>
+            {% endif %}
+
+            <!-- ============================================ -->
+            <!-- 1. IDENTITÉ                                   -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-1"></i> Identité de l'école
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Nom de l'école <span class="text-danger">*</span>
+                            </label>
+                            {{ form.nom }}
+                            {% if form.nom.errors %}
+                                <div class="text-danger small">{{ form.nom.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sigle</label>
+                            {{ form.sigle }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ministère</label>
+                            {{ form.ministere }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Académie</label>
+                            {{ form.academie }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Circonscription (CAP)</label>
+                            {{ form.circonscription }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">N° d'autorisation</label>
+                            {{ form.numero_autorisation }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 2. COORDONNÉES                                -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-1"></i> Coordonnées
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Adresse</label>
+                            {{ form.adresse }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Ville</label>
+                            {{ form.ville }}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label class="form-label">Pays</label>
+                            {{ form.pays }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Téléphone</label>
+                            {{ form.telephone }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Email</label>
+                            {{ form.email }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Site web</label>
+                            {{ form.site_web }}
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Boîte postale</label>
+                            {{ form.boite_postale }}
+                        </div>
+                        <div class="col-md-8 mb-3">
+                            <label class="form-label">Logo</label>
+                            {{ form.logo }}
+                            {% if ecole.logo %}
+                                <div class="mt-2">
+                                    <img src="{{ ecole.logo.url }}" alt="Logo"
+                                         class="border rounded p-1" style="max-height: 80px;">
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Nom du directeur</label>
+                            {{ form.nom_directeur }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 3. TYPE D'ÉCOLE                               -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-school me-1"></i>
+                        Type d'école
+                    </h6>
+                </div>
+                <div class="card-body">
+
+                    <div class="alert alert-info small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Le type d'école détermine si le <strong>nom arabe</strong> des matières
+                        est utilisé sur les bulletins et documents officiels.
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Type d'école</label>
+                        {{ form.type_ecole }}
+                        {% if form.type_ecole.errors %}
+                            <div class="text-danger small">{{ form.type_ecole.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            <strong>Classique</strong> : pas de nom arabe (matières en français uniquement)<br>
+                            <strong>Franco-arabe</strong> : nom arabe affiché à côté du nom français
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 4. MODES DE PAIEMENT                          -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3" style="border-color: var(--lycee-secondary);">
+                <div class="card-header" style="background: linear-gradient(135deg, var(--lycee-secondary), #e67e22); color: white;">
+                    <h6 class="mb-0">
+                        <i class="fas fa-money-check-alt me-1"></i>
+                        Modes de paiement
+                        <small class="ms-2 opacity-75">(s'applique à TOUTES les classes)</small>
+                    </h6>
+                </div>
+                <div class="card-body">
+
+                    <div class="alert alert-info small">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        Ces paramètres définissent <strong>comment</strong> les frais sont payés.
+                        Les <strong>montants</strong> sont définis par classe (dans "Classes").
+                    </div>
+
+                    <!-- Mode frais d'inscription -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-file-invoice me-1"></i>
+                            Mode des frais d'inscription
+                        </label>
+                        {{ form.mode_frais_inscription }}
+                        {% if form.mode_frais_inscription.errors %}
+                            <div class="text-danger small">{{ form.mode_frais_inscription.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            <strong>Une seule fois</strong> : payé uniquement à la 1ère inscription de l'élève.<br>
+                            <strong>Chaque année</strong> : payé à chaque nouvelle inscription annuelle.
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <!-- Mode frais de scolarité -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-graduation-cap me-1"></i>
+                            Mode des frais de scolarité
+                        </label>
+                        {{ form.mode_frais_scolarite }}
+                        {% if form.mode_frais_scolarite.errors %}
+                            <div class="text-danger small">{{ form.mode_frais_scolarite.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            Le montant annuel de chaque classe sera divisé automatiquement selon ce mode :
+                            <ul class="mt-2 mb-0 small">
+                                <li><strong>Mensuel</strong> : 9 versements (Octobre → Juin)</li>
+                                <li><strong>Trimestriel</strong> : 3 versements</li>
+                                <li><strong>Par tranches</strong> : N versements personnalisés</li>
+                                <li><strong>Annuel</strong> : 1 versement par an</li>
+                                <li><strong>Unique</strong> : 1 seul versement pour tout le cursus</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Nombre de tranches -->
+                    <div id="blocNombreTranches" class="mb-3">
+                        <label class="form-label fw-bold">
+                            <i class="fas fa-layer-group me-1"></i>
+                            Nombre de tranches
+                        </label>
+                        {{ form.nombre_tranches }}
+                        {% if form.nombre_tranches.errors %}
+                            <div class="text-danger small">{{ form.nombre_tranches.errors }}</div>
+                        {% endif %}
+                        <div class="form-text">
+                            Entre 2 et 12. Utilisé uniquement si le mode est "Par tranches".
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 5. EN-TÊTE DES DOCUMENTS OFFICIELS            -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-flag me-1"></i> En-tête des documents officiels
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">République</label>
+                            {{ form.republique }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Devise</label>
+                            {{ form.devise }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- 6. SAUVEGARDE DES DONNÉES                     -->
+            <!-- ============================================ -->
+            <div class="card shadow-sm mb-3">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        Sauvegarde des données
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2">
+                        <strong>Emplacement de vos données :</strong><br>
+                        <code>{{ chemin_donnees }}</code>
+                    </p>
+                    <p class="mb-2 text-muted small">
+                        <i class="fas fa-info-circle"></i>
+                        Pour sauvegarder automatiquement vos données sur Google Drive,
+                        consultez le fichier <strong>GUIDE_SAUVEGARDE_GOOGLE_DRIVE.pdf</strong>
+                        livré avec l'application.
+                    </p>
+                    <a href="{% url 'ouvrir_dossier_donnees' %}"
+                       class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-folder-open"></i> Ouvrir le dossier
+                    </a>
+                </div>
+            </div>
+
+            <!-- ============================================ -->
+            <!-- BOUTONS                                       -->
+            <!-- ============================================ -->
+            <div class="d-flex justify-content-end gap-2 mb-4">
+                <a href="{% url 'lycee:dashboard' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer les paramètres
+                </button>
+            </div>
+
+        </form>
+
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectMode = document.getElementById('id_mode_frais_scolarite');
+    const blocTranches = document.getElementById('blocNombreTranches');
+
+    function majTranches() {
+        if (selectMode && selectMode.value === 'tranches') {
+            blocTranches.style.display = '';
+        } else {
+            blocTranches.style.display = 'none';
+        }
+    }
+    majTranches();
+    if (selectMode) selectMode.addEventListener('change', majTranches);
+});
+</script>
+{% endblock %}

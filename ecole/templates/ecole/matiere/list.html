@@ -1,0 +1,148 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Matières{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-book me-2"></i>
+        Matières
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:matiere_create' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle matière
+    </a>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:matiere_list' %}?cycle=1er">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+            <span class="badge bg-info ms-1">{{ nb_matieres_1er }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:matiere_list' %}?cycle=2e">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+            <span class="badge bg-primary ms-1">{{ nb_matieres_2e }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:matiere_list' %}">
+            <i class="fas fa-list me-1"></i> Toutes
+            <span class="badge bg-secondary ms-1">{{ nb_matieres_total }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- Tableau -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Matières</th>
+
+                        <!-- ✅ Nom arabe : uniquement si école franco-arabe -->
+                        {% if est_franco_arabe %}
+                            <th>مواد</th>
+                        {% endif %}
+
+                        <!-- ✅ Coefficient : masqué si cycle = 1er -->
+                        {% if cycle_filtre != '1er' %}
+                            <th class="text-center">Coefficient</th>
+                        {% endif %}
+
+                        <!-- ✅ Cycle : masqué si on est déjà filtré sur un cycle -->
+                        {% if not cycle_filtre %}
+                            <th>Cycle</th>
+                        {% endif %}
+
+                        <!-- ✅ Tendance : masquée si cycle = 1er -->
+                        {% if cycle_filtre != '1er' %}
+                            <th>Tendance</th>
+                        {% endif %}
+
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for matiere in matieres %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><strong>{{ matiere.nomMatiere }}</strong></td>
+
+                        <!-- ✅ Nom arabe conditionnel -->
+                        {% if est_franco_arabe %}
+                            <td>{{ matiere.nomArabe|default:"—" }}</td>
+                        {% endif %}
+
+                        <!-- ✅ Coefficient conditionnel -->
+                        {% if cycle_filtre != '1er' %}
+                            <td class="text-center">
+                                <span class="badge bg-secondary">{{ matiere.coef }}</span>
+                            </td>
+                        {% endif %}
+
+                        <!-- ✅ Cycle conditionnel -->
+                        {% if not cycle_filtre %}
+                            <td>
+                                <span class="badge {% if matiere.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {{ matiere.get_cycle_display }}
+                                </span>
+                            </td>
+                        {% endif %}
+
+                        <!-- ✅ Tendance conditionnelle -->
+                        {% if cycle_filtre != '1er' %}
+                            <td>
+                                {% if matiere.tendance %}
+                                    <span class="badge bg-secondary">
+                                        {{ matiere.get_tendance_display }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        {% endif %}
+
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:matiere_update' matiere.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                                   class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'fondamental:matiere_delete' matiere.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                                   class="btn btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="10" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Aucune matière enregistrée.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

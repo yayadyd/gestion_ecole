@@ -1,0 +1,377 @@
+{% extends 'ecole/base.html' %}
+{% load custom_filters %}
+
+{% block page_title %}Bulletin mensuel - {{ eleve }} - {{ nom_mois }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4>
+        <i class="fas fa-file-alt me-2"></i>
+        Bulletin mensuel - {{ eleve.prenomEleve }} {{ eleve.nomEleve }}
+        <small class="text-muted">{{ nom_mois }} {{ annee_scolaire }}</small>
+    </h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <!-- Navigation par mois -->
+        <div class="btn-group btn-group-sm">
+            {% for m, nom in mois_choices %}
+            <a href="{% url 'fondamental:cycle1_bulletin_eleve' eleve.id annee_scolaire m %}"
+               class="btn {% if m == mois %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ nom|slice:":3" }}
+            </a>
+            {% endfor %}
+        </div>
+        <!-- Exporter PDF -->
+        <a href="{% url 'fondamental:cycle1_bulletin_eleve_pdf' eleve.id annee_scolaire mois %}"
+           class="btn btn-danger btn-sm" title="Télécharger en PDF">
+            <i class="fas fa-file-pdf"></i> Exporter PDF
+        </a>
+
+        <!-- Historique -->
+        <a href="{% url 'fondamental:cycle1_bulletins_eleve_annee' eleve.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-history"></i> Historique
+        </a>
+
+        <!-- Retour -->
+        <a href="{% url 'fondamental:cycle1_bulletin_classe' inscription.classe.idClasse annee_scolaire mois %}" class="btn btn-info btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour à la classe
+        </a>
+    </div>
+</div>
+
+<!-- BULLETIN MENSUEL -->
+<div class="card">
+    <div class="card-body bulletin-container">
+
+        <!-- ============ EN-TÊTE 3 ZONES ============ -->
+        <div class="entete-bulletin">
+            <!-- Zone gauche -->
+            <div class="entete-gauche">
+                {% if ecole.circonscription %}
+                <div class="entete-ligne">{{ ecole.circonscription }}</div>
+                {% endif %}
+                {% if ecole.nom %}
+                <div class="entete-ligne fw-bold">{{ ecole.nom }}</div>
+                {% endif %}
+                {% if ecole.telephone %}
+                <div class="entete-ligne">Tel: {{ ecole.telephone }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Zone centre : Logo -->
+            <div class="entete-centre">
+                {% if ecole.logo %}
+                <img src="{{ ecole.logo.url }}" alt="Logo {{ ecole.nom }}" class="entete-logo">
+                {% endif %}
+            </div>
+
+            <!-- Zone droite -->
+            <div class="entete-droite">
+                {% if ecole.republique %}
+                <div class="entete-ligne fw-bold">{{ ecole.republique }}</div>
+                {% endif %}
+                {% if ecole.devise %}
+                <div class="entete-ligne">{{ ecole.devise }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <hr class="entete-separateur">
+        <!-- ============ FIN EN-TÊTE ============ -->
+
+        <!-- Titre du bulletin -->
+        <div class="text-center mb-4">
+            <h2 class="text-uppercase">BULLETIN MENSUEL</h2>
+            <h5 class="text-muted">Composition de {{ nom_mois }} - {{ annee_scolaire }}</h5>
+            <div class="row mt-3">
+                <div class="col-md-8 text-start">
+                    <h5><strong>Prénoms et noms :</strong> {{ eleve.prenomEleve }} {{ eleve.nomEleve|upper }}</h5>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h5><strong>Matricule :</strong> {{ eleve.matricule }}</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 text-start">
+                    <h5><strong>Classe :</strong> {{ inscription.classe.nomClasse }}</h5>
+                </div>
+                
+            </div>
+        </div>
+
+        {% if resultat %}
+        <!-- Tableau des notes -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Matières</th>
+                        <th class="text-center">Notes /10</th>
+                        {% if est_franco_arabe %}
+                            <th>Arabe</th>
+                        {% endif %}                        
+                        <th>Appréciations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for detail in resultat.details.all %}
+                <tr>
+                    <td><strong>{{ detail.matiere.nomMatiere }}</strong></td>
+                    <td class="text-center
+                        {% if detail.note >= 9 %}text-success
+                        {% elif detail.note >= 7 %}text-primary
+                        {% elif detail.note >= 5 %}text-info
+                        {% elif detail.note >= 3 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        <strong>{{ detail.note|floatformat:2 }}</strong>
+                    </td>
+                        {% if est_franco_arabe %}
+                                <td dir="rtl">{{ detail.matiere.nomArabe|default:"—" }}</td>
+                            {% endif %}<td>
+                        <span class="badge
+                            {% if detail.appreciation == 'Très Bien' %}bg-success
+                            {% elif detail.appreciation == 'Bien' %}bg-primary
+                            {% elif detail.appreciation == 'Assez Bien' %}bg-info
+                            {% elif detail.appreciation == 'Passable' %}bg-warning
+                            {% elif detail.appreciation == 'Insuffisant' %}bg-danger
+                            {% else %}bg-dark{% endif %}">
+                            {{ detail.appreciation }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+                <!-- ✅ Ligne de totaux -->
+                
+            </table>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- ✅ RÉSULTATS DU MOIS (Total / Moyenne / Rang)                -->
+        <!-- ============================================================ -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h5 class="mb-3">
+                            <i class="fas fa-chart-bar me-1"></i> Résultats du mois
+                        </h5>
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <!-- ✅ Total (somme des notes) -->
+                                <tr>
+                                    <td><strong>Total (somme des notes) :</strong></td>
+                                    <td class="text-end">
+                                        <strong class="text-primary fs-5">
+                                            {{ total_notes|floatformat:2 }}
+                                        </strong>
+                                        <small class="text-muted">
+                                            /{{ nb_matieres_notees }} mat.
+                                        </small>
+                                    </td>
+                                </tr>
+
+                                <!-- ✅ Moyenne (moyenne des notes) -->
+                                <tr>
+                                    <td><strong>Moyenne :</strong></td>
+                                    <td class="text-end">
+                                        <strong class="fs-5
+                                            {% if moyenne_notes >= 6 %}text-success
+                                            {% elif moyenne_notes >= 5 %}text-warning
+                                            {% else %}text-danger{% endif %}">
+                                            {{ moyenne_notes|floatformat:2 }}/10
+                                        </strong>
+                                    </td>
+                                </tr>
+
+                                <!-- ✅ Rang avec distinction Garçon/Fille -->
+                                <tr>
+                                    <td><strong>Rang :</strong></td>
+                                    <td class="text-end">
+                                        {% if rang_affiche == "1er" %}
+                                            <span class="badge bg-warning text-dark fs-6">
+                                                <i class="fas fa-trophy"></i>
+                                                1er (garçon)
+                                            </span>
+                                        {% elif rang_affiche == "1ère" %}
+                                            <span class="badge bg-warning text-dark fs-6">
+                                                <i class="fas fa-trophy"></i>
+                                                1ère (fille)
+                                            </span>
+                                        {% elif rang_affiche != "-" %}
+                                            <span class="badge bg-secondary fs-6">
+                                                {{ rang_affiche }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">—</span>
+                                        {% endif %}
+                                        <br>
+                                        <small class="text-muted">
+                                            sur {{ effectif_classe }} élève{{ effectif_classe|pluralize }}
+                                        </small>
+                                    </td>
+                                </tr>
+
+                                <!-- Moyenne de la classe -->
+                                <tr>
+                                    <td><strong>Moyenne de la classe :</strong></td>
+                                    <td class="text-end">
+                                        <strong>{{ class_stats.moyenne_classe|default:"-" }}/10</strong>
+                                    </td>
+                                </tr>
+
+                                <!-- Effectif -->
+                                <tr>
+                                    <td><strong>Effectif :</strong></td>
+                                    <td class="text-end">
+                                        <strong>{{ class_stats.effectif|default:"-" }} élèves</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card bg-light">
+                    <div class="card-body">
+                        <h5 class="mb-3">
+                            <i class="fas fa-comment-alt me-1"></i> Appréciation
+                        </h5>
+                        <p class="mb-3">
+                            {% if moyenne_notes >= 9 %}
+                                <span class="badge bg-success fs-6">Très Bien</span>
+                                Excellent travail ! Félicitations.
+                            {% elif moyenne_notes >= 7 %}
+                                <span class="badge bg-primary fs-6">Bien</span>
+                                Très bon travail. Continuez ainsi.
+                            {% elif moyenne_notes >= 5 %}
+                                <span class="badge bg-warning text-dark fs-6">Passable</span>
+                                Bon travail. Encore un petit effort.
+                            {% elif moyenne_notes >= 3 %}
+                                <span class="badge bg-secondary fs-6">Insuffisant</span>
+                                Travail satisfaisant.
+                            {% else %}
+                                <span class="badge bg-danger fs-6">Faible</span>
+                                Des efforts sont nécessaires.
+                            {% endif %}
+                        </p>
+                        {% if moyenne_notes >= 9 %}
+                        <p class="text-success small mb-0">
+                            <i class="fas fa-star"></i>
+                            Élève classé parmi les meilleurs de la classe.
+                        </p>
+                        {% elif moyenne_notes < 3 %}
+                        <p class="text-danger small mb-0">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Un accompagnement personnalisé est recommandé.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="row mt-4">
+            <div class="col-6 text-center">
+                <p><strong>LE DIRECTEUR</strong></p>
+                <br><br>
+                <p>_________________</p>
+            </div>
+            <div class="col-6 text-center">
+                <p><strong>LES PARENTS</strong></p>
+                <br><br>
+                <p>_________________</p>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Aucune note pour {{ nom_mois }}.</strong>
+            <p class="mb-2 mt-2 small">
+                Les notes de {{ nom_mois }} n'ont pas encore été saisies pour cet élève.
+            </p>
+            <a href="{% url 'fondamental:cycle1_bulletin_classe' inscription.classe.idClasse annee_scolaire mois %}"
+               class="btn btn-secondary btn-sm">
+                <i class="fas fa-arrow-left"></i> Retour à la classe
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+/* ============================================================
+   EN-TÊTE 3 ZONES
+   ============================================================ */
+.entete-bulletin {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 10px 0;
+}
+.entete-gauche {
+    flex: 1;
+    text-align: left;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.entete-centre {
+    flex: 0 0 auto;
+    text-align: center;
+}
+.entete-logo {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+}
+.entete-droite {
+    flex: 1;
+    text-align: right;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.entete-ligne {
+    margin-bottom: 2px;
+}
+.entete-separateur {
+    border-top: 2px solid #3498db;
+    margin: 5px 0 15px 0;
+    opacity: 1;
+}
+
+/* ============================================================
+   IMPRESSION
+   ============================================================ */
+@media print {
+    .no-print { display: none !important; }
+    .bulletin-container { padding: 20px; font-size: 11px; }
+    .card { border: none !important; box-shadow: none !important; page-break-inside: avoid; }
+    .card-body { padding: 10px !important; }
+    .table { font-size: 10px; }
+    .table th, .table td { padding: 4px !important; }
+    .badge {
+        border: 1px solid #ddd;
+        background-color: #f8f9fa !important;
+        color: #333 !important;
+    }
+    .text-success { color: #28a745 !important; }
+    .text-primary { color: #007bff !important; }
+    .text-info { color: #17a2b8 !important; }
+    .text-warning { color: #ffc107 !important; }
+    .text-danger { color: #dc3545 !important; }
+    .bg-light { background-color: #f8f9fa !important; }
+
+    .entete-bulletin {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+    }
+    .entete-logo {
+        max-width: 80px;
+        max-height: 80px;
+    }
+}
+</style>
+{% endblock %}

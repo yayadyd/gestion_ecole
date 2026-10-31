@@ -1,0 +1,595 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier{% else %}Nouvel{% endif %} élève
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+        margin-bottom: 25px;
+    }
+    .form-section h5 {
+        color: #2c3e50;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .form-section h5 i {
+        color: #3498db;
+        margin-right: 8px;
+    }
+    .photo-container {
+        text-align: center;
+        padding: 20px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 2px dashed #dee2e6;
+        transition: all 0.3s;
+    }
+    .photo-container:hover {
+        border-color: #3498db;
+        background: #eaf4fb;
+    }
+    .photo-preview {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid #3498db;
+        margin-bottom: 15px;
+    }
+    .photo-placeholder {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        background: #e0e0e0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 15px;
+        border: 4px solid #3498db;
+    }
+    .photo-placeholder i {
+        font-size: 4rem;
+        color: #adb5bd;
+    }
+    .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+    }
+    .form-control:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    .help-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    .matricule-box {
+        background: linear-gradient(135deg, #3498db, #2c3e50);
+        color: white;
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+    }
+    .matricule-box h6 {
+        margin: 0;
+        font-size: 0.8rem;
+        opacity: 0.9;
+    }
+    .matricule-box h4 {
+        margin: 5px 0 0 0;
+        font-family: monospace;
+        letter-spacing: 2px;
+    }
+    .sticky-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 15px;
+        border-top: 2px solid #dee2e6;
+        z-index: 100;
+        margin-top: 20px;
+    }
+    .section-divider {
+        border-top: 1px dashed #dee2e6;
+        margin: 20px 0 15px;
+        padding-top: 15px;
+    }
+    .section-divider small {
+        color: #3498db;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    /* ✅ NOUVEAU : style pour les champs de parcours scolaire */
+    .parcours-warning {
+        background: #fff3cd;
+        border-left: 4px solid #ffc107;
+        padding: 10px 15px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        margin-bottom: 15px;
+    }
+    .parcours-warning i {
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        <i class="fas fa-user-graduate me-2"></i>
+        {% if form.instance.pk %}Modifier l'élève{% else %}Nouvel élève{% endif %}
+    </h4>
+    <a href="{% url 'fondamental:eleve_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- Formulaire -->
+<form method="post" enctype="multipart/form-data" id="eleveForm" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+    <div class="alert alert-danger">
+        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <!-- ============================================================ -->
+        <!-- COLONNE GAUCHE : Photo + Acte + Parcours scolaire            -->
+        <!-- ============================================================ -->
+        <div class="col-lg-5">
+
+            <!-- Photo -->
+            <div class="form-section">
+                <h5><i class="fas fa-camera"></i> Photo d'identité</h5>
+                <div class="photo-container">
+                    <div id="photoPreviewContainer">
+                        {% if form.instance.photo %}
+                            <img src="{{ form.instance.photo.url }}" alt="Photo actuelle" class="photo-preview" id="photoPreview">
+                        {% else %}
+                            <div class="photo-placeholder" id="photoPlaceholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <img src="" alt="Aperçu" class="photo-preview d-none" id="photoPreview">
+                        {% endif %}
+                    </div>
+                    <label for="{{ form.photo.id_for_label }}" class="btn btn-outline-primary btn-sm mt-2">
+                        <i class="fas fa-upload"></i> Choisir une photo
+                    </label>
+                    <div class="d-none">{{ form.photo }}</div>
+                    <div class="help-text mt-2">
+                        Formats acceptés : JPG, PNG • Taille max : 2 Mo
+                    </div>
+                </div>
+            </div>
+
+            <!-- Matricule (mode modification) -->
+            {% if form.instance.pk %}
+            <div class="form-section">
+                <h5><i class="fas fa-id-card"></i> Matricule</h5>
+                <div class="matricule-box">
+                    <h6>NUMÉRO D'IDENTIFICATION</h6>
+                    <h4>{{ form.instance.matricule }}</h4>
+                    <small class="opacity-75">Généré automatiquement</small>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Acte de naissance -->
+            <div class="form-section">
+                <h5><i class="fas fa-file-contract"></i> Acte de naissance</h5>
+
+                <div class="mb-3">
+                    <label for="{{ form.numero_acte_naissance.id_for_label }}" class="form-label">
+                        {{ form.numero_acte_naissance.label }}
+                    </label>
+                    {{ form.numero_acte_naissance }}
+                    {% if form.numero_acte_naissance.errors %}
+                    <div class="text-danger small">{{ form.numero_acte_naissance.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.date_delivrance_acte.id_for_label }}" class="form-label">
+                        {{ form.date_delivrance_acte.label }}
+                    </label>
+                    {{ form.date_delivrance_acte }}
+                    {% if form.date_delivrance_acte.errors %}
+                    <div class="text-danger small">{{ form.date_delivrance_acte.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            {# ✅ NOUVEAU : Section Parcours scolaire réorganisée #}
+            <div class="form-section">
+                <h5><i class="fas fa-route"></i> Parcours scolaire</h5>
+
+                <div class="parcours-warning">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Ces informations sont <b>saisies manuellement</b> et ne sont
+                    <b>jamais recalculées automatiquement</b>. Renseignez-les même
+                    si l'élève a commencé dans une autre école.
+                </div>
+
+                {# Année de recrutement (1ère Année) #}
+                <div class="mb-3">
+                    <label for="{{ form.annee_recrutement.id_for_label }}" class="form-label">
+                        <i class="fas fa-calendar-plus me-1 text-primary"></i>
+                        {{ form.annee_recrutement.label }}
+                    </label>
+                    {{ form.annee_recrutement }}
+                    <div class="help-text">
+                        Année d'entrée en <b>1ère Année</b> (ex: 2020-2021).
+                        Même si l'élève a commencé ailleurs.
+                    </div>
+                    {% if form.annee_recrutement.errors %}
+                    <div class="text-danger small">{{ form.annee_recrutement.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {# École de recrutement #}
+                <div class="mb-3">
+                    <label for="{{ form.ecole_recrutement.id_for_label }}" class="form-label">
+                        {{ form.ecole_recrutement.label }}
+                    </label>
+                    {{ form.ecole_recrutement }}
+                    <div class="help-text">École où l'élève a fait sa 1ère Année</div>
+                    {% if form.ecole_recrutement.errors %}
+                    <div class="text-danger small">{{ form.ecole_recrutement.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {# École de fin de 1er cycle #}
+                <div class="mb-3">
+                    <label for="{{ form.ecole_fin_1er_cycle.id_for_label }}" class="form-label">
+                        {{ form.ecole_fin_1er_cycle.label }}
+                    </label>
+                    {{ form.ecole_fin_1er_cycle }}
+                    <div class="help-text">École où l'élève a terminé sa 6ème Année</div>
+                    {% if form.ecole_fin_1er_cycle.errors %}
+                    <div class="text-danger small">{{ form.ecole_fin_1er_cycle.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {# Séparateur visuel #}
+                <div class="section-divider">
+                    <small><i class="fas fa-arrow-right me-1"></i> Entrée au 2e cycle</small>
+                </div>
+
+                {# Année d'entrée en 7ème #}
+                <div class="mb-3">
+                    <label for="{{ form.annee_entree_7eme.id_for_label }}" class="form-label">
+                        <i class="fas fa-calendar-plus me-1 text-success"></i>
+                        {{ form.annee_entree_7eme.label }}
+                    </label>
+                    {{ form.annee_entree_7eme }}
+                    <div class="help-text">
+                        Année d'entrée en <b>7ème Année</b> (ex: 2024-2025).
+                        À renseigner manuellement.
+                    </div>
+                    {% if form.annee_entree_7eme.errors %}
+                    <div class="text-danger small">{{ form.annee_entree_7eme.errors }}</div>
+                    {% endif %}
+                </div>
+
+                {# École de l'année précédente #}
+                <div class="mb-3">
+                    <label for="{{ form.ecole_an_dernier.id_for_label }}" class="form-label">
+                        {{ form.ecole_an_dernier.label }}
+                    </label>
+                    {{ form.ecole_an_dernier }}
+                    <div class="help-text">Uniquement si l'élève vient d'un autre établissement</div>
+                    {% if form.ecole_an_dernier.errors %}
+                    <div class="text-danger small">{{ form.ecole_an_dernier.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- COLONNE DROITE : Identité + Filiation/Tuteur + Scolarité    -->
+        <!-- ============================================================ -->
+        <div class="col-lg-7">
+
+            <!-- Identité -->
+            <div class="form-section">
+                <h5><i class="fas fa-user"></i> Identité</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.nomEleve.id_for_label }}" class="form-label required-field">
+                            {{ form.nomEleve.label }}
+                        </label>
+                        {{ form.nomEleve }}
+                        {% if form.nomEleve.errors %}
+                        <div class="text-danger small">{{ form.nomEleve.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.prenomEleve.id_for_label }}" class="form-label required-field">
+                            {{ form.prenomEleve.label }}
+                        </label>
+                        {{ form.prenomEleve }}
+                        {% if form.prenomEleve.errors %}
+                        <div class="text-danger small">{{ form.prenomEleve.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.sexe.id_for_label }}" class="form-label required-field">
+                            {{ form.sexe.label }}
+                        </label>
+                        {{ form.sexe }}
+                        {% if form.sexe.errors %}
+                        <div class="text-danger small">{{ form.sexe.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.dateNaiss.id_for_label }}" class="form-label required-field">
+                            {{ form.dateNaiss.label }}
+                        </label>
+                        {{ form.dateNaiss }}
+                        {% if form.dateNaiss.errors %}
+                        <div class="text-danger small">{{ form.dateNaiss.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label for="{{ form.lieuNaiss.id_for_label }}" class="form-label required-field">
+                            {{ form.lieuNaiss.label }}
+                        </label>
+                        {{ form.lieuNaiss }}
+                        {% if form.lieuNaiss.errors %}
+                        <div class="text-danger small">{{ form.lieuNaiss.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filiation & Tuteur -->
+            <div class="form-section">
+                <h5><i class="fas fa-users"></i> Filiation & Tuteur</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.pere.id_for_label }}" class="form-label">
+                            <i class="fas fa-male me-1"></i> {{ form.pere.label }}
+                        </label>
+                        {{ form.pere }}
+                        {% if form.pere.errors %}
+                        <div class="text-danger small">{{ form.pere.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.mere.id_for_label }}" class="form-label">
+                            <i class="fas fa-female me-1"></i> {{ form.mere.label }}
+                        </label>
+                        {{ form.mere }}
+                        {% if form.mere.errors %}
+                        <div class="text-danger small">{{ form.mere.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="section-divider">
+                    <small><i class="fas fa-phone me-1"></i> Tuteur / Contact d'urgence</small>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.contactTuteur.id_for_label }}" class="form-label">
+                        {{ form.contactTuteur.label }}
+                    </label>
+                    {{ form.contactTuteur }}
+                    <div class="help-text">Numéro de téléphone pour joindre le tuteur</div>
+                    {% if form.contactTuteur.errors %}
+                    <div class="text-danger small">{{ form.contactTuteur.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.adresseTuteur.id_for_label }}" class="form-label">
+                        {{ form.adresseTuteur.label }}
+                    </label>
+                    {{ form.adresseTuteur }}
+                    {% if form.adresseTuteur.errors %}
+                    <div class="text-danger small">{{ form.adresseTuteur.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Scolarité -->
+            <div class="form-section">
+                <h5><i class="fas fa-book-open"></i> Scolarité</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.scolarite_1er_cycle.id_for_label }}" class="form-label">
+                            {{ form.scolarite_1er_cycle.label }}
+                        </label>
+                        {{ form.scolarite_1er_cycle }}
+                        <div class="help-text">Années passées au 1er cycle avant cet établissement</div>
+                        {% if form.scolarite_1er_cycle.errors %}
+                        <div class="text-danger small">{{ form.scolarite_1er_cycle.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.scolarite_2e_cycle.id_for_label }}" class="form-label">
+                            {{ form.scolarite_2e_cycle.label }}
+                        </label>
+                        {{ form.scolarite_2e_cycle }}
+                        <div class="help-text">Saisie initiale manuelle (mise à jour auto ensuite)</div>
+                        {% if form.scolarite_2e_cycle.errors %}
+                        <div class="text-danger small">{{ form.scolarite_2e_cycle.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sticky-actions d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Les champs marqués d'un <span class="text-danger fw-bold">*</span> sont obligatoires
+        </small>
+        <div>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+            <a href="{% url 'fondamental:eleve_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================================
+    // APERÇU DE LA PHOTO EN TEMPS RÉEL
+    // ============================================================
+    const photoInput = document.getElementById('{{ form.photo.id_for_label }}');
+    const photoPreview = document.getElementById('photoPreview');
+    const photoPlaceholder = document.getElementById('photoPlaceholder');
+
+    if (photoInput && photoPreview) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    photoPreview.src = evt.target.result;
+                    photoPreview.classList.remove('d-none');
+                    if (photoPlaceholder) {
+                        photoPlaceholder.classList.add('d-none');
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // ============================================================
+    // VALIDATION AVANT SOUMISSION
+    // ============================================================
+    const form = document.getElementById('eleveForm');
+    form.addEventListener('submit', function(e) {
+        const requiredFields = ['nomEleve', 'prenomEleve', 'sexe', 'dateNaiss', 'lieuNaiss'];
+        let firstEmptyField = null;
+
+        requiredFields.forEach(function(fieldName) {
+            const field = document.getElementById('id_' + fieldName);
+            if (field && !field.value.trim()) {
+                if (!firstEmptyField) firstEmptyField = field;
+                field.classList.add('is-invalid');
+            } else if (field) {
+                field.classList.remove('is-invalid');
+            }
+        });
+
+        if (firstEmptyField) {
+            e.preventDefault();
+            firstEmptyField.focus();
+            firstEmptyField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
+
+    // ============================================================
+    // ✅ NOUVEAU : Validation du format AAAA-AAAA en JS
+    // ============================================================
+    const anneesScolaires = ['annee_recrutement', 'annee_entree_7eme'];
+    anneesScolaires.forEach(function(fieldName) {
+        const field = document.getElementById('id_' + fieldName);
+        if (!field) return;
+
+        field.addEventListener('blur', function() {
+            const value = this.value.trim();
+            if (!value) return;
+
+            const regex = /^\d{4}-\d{4}$/;
+            if (!regex.test(value)) {
+                this.classList.add('is-invalid');
+                this.setCustomValidity("Format attendu : AAAA-AAAA (ex: 2025-2026)");
+            } else {
+                // Vérifier que les 2 années se suivent
+                const debut = parseInt(value.substring(0, 4));
+                const fin = parseInt(value.substring(5, 9));
+                if (fin !== debut + 1) {
+                    this.classList.add('is-invalid');
+                    this.setCustomValidity("Les deux années doivent se suivre (ex: 2025-2026)");
+                } else {
+                    this.classList.remove('is-invalid');
+                    this.setCustomValidity("");
+                }
+            }
+        });
+
+        field.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+            this.setCustomValidity("");
+        });
+    });
+
+    // ============================================================
+    // ✅ NOUVEAU : Validation croisée annee_recrutement < annee_entree_7eme
+    // ============================================================
+    const fieldReclut = document.getElementById('id_annee_recrutement');
+    const field7eme = document.getElementById('id_annee_entree_7eme');
+
+    function validateAnneesCroisees() {
+        if (!fieldReclut || !field7eme) return;
+        const valReclut = fieldReclut.value.trim();
+        const val7eme = field7eme.value.trim();
+
+        if (valReclut && val7eme && /^\d{4}-\d{4}$/.test(valReclut) && /^\d{4}-\d{4}$/.test(val7eme)) {
+            const debutReclut = parseInt(valReclut.substring(0, 4));
+            const debut7eme = parseInt(val7eme.substring(0, 4));
+
+            if (debut7eme < debutReclut) {
+                field7eme.classList.add('is-invalid');
+                field7eme.setCustomValidity(
+                    "L'année d'entrée en 7ème ne peut pas être antérieure à l'année de recrutement."
+                );
+            } else {
+                field7eme.classList.remove('is-invalid');
+                field7eme.setCustomValidity("");
+            }
+        }
+    }
+
+    if (fieldReclut) fieldReclut.addEventListener('blur', validateAnneesCroisees);
+    if (field7eme) field7eme.addEventListener('blur', validateAnneesCroisees);
+
+    // Nettoyer la classe is-invalid à la saisie
+    document.querySelectorAll('.form-control').forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+});
+</script>
+{% endblock %}

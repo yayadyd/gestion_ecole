@@ -1,0 +1,189 @@
+{% extends 'ecole/base_login.html' %}
+{% load static %}
+
+{% block title %}Connexion{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card login-card">
+                <div class="card-body p-5">
+
+                    <!-- ============================================================ -->
+                    <!-- LOGO + NOM DE L'ÉCOLE + NOM DE L'APPLICATION                 -->
+                    <!-- ============================================================ -->
+                    <div class="text-center mb-4">
+                        
+                        {% if ecole and ecole.logo %}
+                            <img src="{{ ecole.logo.url }}"
+                                 alt="Logo {{ ecole.nom }}"
+                                 class="login-logo-img">
+                        {% else %}
+                            <i class="fas fa-school login-logo"></i>
+                        {% endif %}
+
+                        <!-- Nom de l'école -->
+                        <h3 class="mt-3 mb-1">
+                            {% if ecole and ecole.nom %}
+                                {{ ecole.nom }}
+                            {% else %}
+                                Gestion scolaire
+                            {% endif %}
+                        </h3>
+
+                        <!-- Nom de l'application -->
+                        <p class="app-name mb-1">
+                            <i class="fas fa-graduation-cap me-1"></i>
+                            Mali Kalanso
+                        </p>
+
+                        <p class="text-muted small">Connectez-vous pour continuer</p>
+                    </div>
+
+                    <!-- ============================================================ -->
+                    <!-- MESSAGES D'ERREUR                                            -->
+                    <!-- ============================================================ -->
+                    {% if form.errors %}
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Identifiant ou mot de passe incorrect.
+                    </div>
+                    {% endif %}
+
+                    {% if next %}
+                        {% if user.is_authenticated %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-lock me-2"></i>
+                            Vous n'avez pas accès à cette page.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Connectez-vous pour accéder à cette page.
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <!-- ============================================================ -->
+                    <!-- FORMULAIRE DE CONNEXION                                      -->
+                    <!-- ============================================================ -->
+                    <form method="post">
+                        {% csrf_token %}
+
+                        <div class="mb-3">
+                            <label for="id_username" class="form-label">
+                                <i class="fas fa-user me-1"></i> Nom d'utilisateur
+                            </label>
+                            <input type="text"
+                                   name="username"
+                                   id="id_username"
+                                   class="form-control form-control-lg"
+                                   placeholder="Entrez votre identifiant"
+                                   autofocus
+                                   required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="id_password" class="form-label">
+                                <i class="fas fa-lock me-1"></i> Mot de passe
+                            </label>
+                            <input type="password"
+                                   name="password"
+                                   id="id_password"
+                                   class="form-control form-control-lg"
+                                   placeholder="Entrez votre mot de passe"
+                                   required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-sign-in-alt me-2"></i> Se connecter
+                        </button>
+                    </form>
+
+                    <hr class="my-4">
+
+                    <p class="text-center text-muted small mb-0">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Contactez l'administrateur si vous n'avez pas de compte.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ============================================================ -->
+            <!-- PIED DE PAGE                                                 -->
+            <!-- ============================================================ -->
+            <p class="text-center text-white-50 mt-3 small">
+                    © {% now "Y" %} Mali Kalanso — Tous droits réservés
+                
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Logo image */
+    .login-logo-img {
+        width: 100px;
+        height: 100px;
+        object-fit: contain;
+        border-radius: 50%;
+        border: 3px solid #3498db;
+        padding: 8px;
+        background: white;
+        box-shadow: 0 4px 15px rgba(52, 152, 219, 0.2);
+    }
+
+    /* Logo icône par défaut */
+    .login-logo {
+        font-size: 4rem;
+        color: #3498db;
+    }
+
+    /* Nom de l'application */
+    .app-name {
+        color: #3498db;
+        font-weight: 600;
+        font-size: 0.95rem;
+        letter-spacing: 0.5px;
+    }
+
+    /* Carte de connexion */
+    .login-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .form-control-lg {
+        border-radius: 10px;
+        padding: 12px 15px;
+        border: 2px solid #e0e0e0;
+        transition: all 0.3s;
+    }
+
+    .form-control-lg:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+
+    .btn-primary {
+        border-radius: 10px;
+        padding: 12px;
+        font-weight: 600;
+        background: linear-gradient(135deg, #3498db, #2c3e50);
+        border: none;
+        transition: all 0.3s;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(52, 152, 219, 0.4);
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+</style>
+{% endblock %}

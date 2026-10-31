@@ -1,0 +1,75 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Paiements{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <h4 class="mb-2">
+        <i class="fas fa-money-bill-wave me-2"></i>
+        Paiements
+    </h4>
+    <p class="text-muted">Choisissez un cycle pour consulter les paiements</p>
+</div>
+
+<div class="row justify-content-center">
+    <!-- 1er Cycle -->
+    <div class="col-md-5 mb-3">
+        <a href="{% url 'fondamental:paiement_list' %}?cycle=1er" class="text-decoration-none d-block">
+            <div class="card card-stats bg-info text-white h-100">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book fa-4x mb-3"></i>
+                    <h3>1er Cycle</h3>
+                    <p class="mb-0 fw-bold">Paiements 1er cycle</p>
+                    <small class="opacity-75">Frais et mensualités des élèves de 1ère à 6ème</small>
+                    <hr class="my-3 border-white opacity-50">
+                    <span class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-right"></i> Voir les paiements
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- 2e Cycle -->
+    <div class="col-md-5 mb-3">
+        <a href="{% url 'fondamental:paiement_list' %}?cycle=2e" class="text-decoration-none d-block">
+            <div class="card card-stats bg-primary text-white h-100">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-book fa-4x mb-3"></i>
+                    <h3>2e Cycle</h3>
+                    <p class="mb-0 fw-bold">Paiements 2e cycle</p>
+                    <small class="opacity-75">Frais et mensualités des élèves de 7ème à 9ème</small>
+                    <hr class="my-3 border-white opacity-50">
+                    <span class="btn btn-light btn-sm">
+                        <i class="fas fa-arrow-right"></i> Voir les paiements
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Vues transverses -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i> Vues d'ensemble</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex flex-wrap gap-2 justify-content-center">
+                    <a href="{% url 'fondamental:paiement_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-list me-1"></i> Tous les paiements
+                    </a>
+                    <a href="{% url 'fondamental:paiement_create' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i> Nouveau paiement
+                    </a>
+                    <a href="{% url 'fondamental:suivi_paiements_par_classe' %}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-chart-line me-1"></i> Suivi par classe
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier la classe{% else %}Nouvelle classe{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>
+                    <i class="fas fa-chalkboard me-2"></i>
+                    {% if form.instance.pk %}
+                        Modifier la classe : <strong>{{ form.instance.nomClasse }}</strong>
+                    {% else %}
+                        Nouvelle classe
+                    {% endif %}
+                </h4>
+                <a href="{% url 'fondamental:classe_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                   class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </a>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <!-- ============================================ -->
+                        <!-- 1. IDENTIFICATION                             -->
+                        <!-- ============================================ -->
+                        <h6 class="text-muted border-bottom pb-2 mb-3">
+                            <i class="fas fa-tag me-1"></i> Identification
+                        </h6>
+
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="{{ form.nomClasse.id_for_label }}" class="form-label">
+                                    Nom de la classe <span class="text-danger">*</span>
+                                </label>
+                                {{ form.nomClasse }}
+                                {% if form.nomClasse.errors %}
+                                    <div class="text-danger small">{{ form.nomClasse.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="{{ form.cycle.id_for_label }}" class="form-label">
+                                    Cycle <span class="text-danger">*</span>
+                                </label>
+                                {{ form.cycle }}
+                                {% if form.cycle.errors %}
+                                    <div class="text-danger small">{{ form.cycle.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- 2. FRAIS DE SCOLARITÉ (MONTANT ANNUEL) ⭐     -->
+                        <!-- ============================================ -->
+                        <h6 class="text-muted border-bottom pb-2 mb-3 mt-4">
+                            <i class="fas fa-coins me-1"></i> Frais
+                        </h6>
+
+                        {% if ecole %}
+                        <div class="alert alert-info small">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Le montant de scolarité est <strong>ANNUEL</strong>.
+                            Il sera automatiquement divisé selon le mode de l'école :
+                            <span class="badge bg-primary">{{ ecole.get_mode_frais_scolarite_display }}</span>
+                            {% if ecole.mode_frais_scolarite == 'tranches' %}
+                                ({{ ecole.nombre_tranches }} tranches)
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.frais_inscription.id_for_label }}" class="form-label">
+                                    Frais d'inscription (FCFA)
+                                </label>
+                                {{ form.frais_inscription }}
+                                {% if form.frais_inscription.errors %}
+                                    <div class="text-danger small">{{ form.frais_inscription.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    {% if ecole.mode_frais_inscription == 'unique' %}
+                                        Payé <strong>une seule fois</strong> à la 1ère inscription.
+                                    {% else %}
+                                        Payé <strong>chaque année</strong>.
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.frais_scolarite.id_for_label }}" class="form-label">
+                                    Frais de scolarité <strong>annuel</strong> (FCFA)
+                                </label>
+                                {{ form.frais_scolarite }}
+                                {% if form.frais_scolarite.errors %}
+                                    <div class="text-danger small">{{ form.frais_scolarite.errors }}</div>
+                                {% endif %}
+                                <div class="form-text">
+                                    Montant total pour l'année (sera divisé selon le mode).
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Aperçu du calcul (JS) -->
+                        <div id="apercuCalcul" class="alert alert-light border d-none">
+                            <strong>Aperçu :</strong>
+                            <span id="apercuTexte"></span>
+                        </div>
+
+                        <!-- BOUTONS -->
+                        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                            <a href="{% url 'fondamental:classe_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                               class="btn btn-outline-secondary">
+                                <i class="fas fa-times"></i> Annuler
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i>
+                                {% if form.instance.pk %}Enregistrer{% else %}Créer la classe{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT : aperçu du calcul selon le mode -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modeScolarite = "{{ ecole.mode_frais_scolarite|default:'mensuel' }}";
+    const nombreTranches = {{ ecole.nombre_tranches|default:4 }};
+    const inputScolarite = document.getElementById('{{ form.frais_scolarite.id_for_label }}');
+    const apercuBloc = document.getElementById('apercuCalcul');
+    const apercuTexte = document.getElementById('apercuTexte');
+
+    function majApercu() {
+        const montantAnnuel = parseFloat(inputScolarite.value) || 0;
+        if (montantAnnuel <= 0) {
+            apercuBloc.classList.add('d-none');
+            return;
+        }
+
+        let texte = '';
+        switch (modeScolarite) {
+            case 'mensuel':
+                texte = `9 versements de <strong>${Math.round(montantAnnuel / 9).toLocaleString('fr-FR')} FCFA</strong>`;
+                break;
+            case 'trimestriel':
+                texte = `3 versements de <strong>${Math.round(montantAnnuel / 3).toLocaleString('fr-FR')} FCFA</strong>`;
+                break;
+            case 'tranches':
+                texte = `${nombreTranches} versements de <strong>${Math.round(montantAnnuel / nombreTranches).toLocaleString('fr-FR')} FCFA</strong>`;
+                break;
+            case 'annuel':
+                texte = `1 versement de <strong>${Math.round(montantAnnuel).toLocaleString('fr-FR')} FCFA</strong>`;
+                break;
+            case 'unique':
+                texte = `1 seul versement pour tout le cursus : <strong>${Math.round(montantAnnuel).toLocaleString('fr-FR')} FCFA</strong>`;
+                break;
+        }
+
+        apercuTexte.innerHTML = texte;
+        apercuBloc.classList.remove('d-none');
+    }
+
+    inputScolarite.addEventListener('input', majApercu);
+    majApercu();
+});
+</script>
+{% endblock %}

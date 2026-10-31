@@ -1,0 +1,244 @@
+{% extends 'ecole/setup/base_setup.html' %}
+{% load static %}
+
+{% block page_title %}Configuration — Étape 1/3{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9">
+
+            <!-- Progression -->
+            <div class="mb-4">
+                <div class="d-flex justify-content-between">
+                    <div class="text-primary fw-bold">1. École</div>
+                    <div class="text-muted">2. Administrateur</div>
+                    <div class="text-muted">3. Année scolaire</div>
+                </div>
+                <div class="progress mt-2" style="height:6px;">
+                    <div class="progress-bar" style="width:33%;"></div>
+                </div>
+            </div>
+
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-school me-2"></i>
+                        Bienvenue dans Mali Kalanso
+                    </h4>
+                    <small>Configurez votre établissement en 3 étapes</small>
+                </div>
+                <div class="card-body">
+
+                    <h5 class="mb-3">
+                        <i class="fas fa-info-circle me-1"></i> Informations de l'école
+                    </h5>
+
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        <input type="hidden" name="key" value="{{ cle }}">
+                        <!-- ============================================ -->
+                        <!-- IDENTITÉ                                      -->
+                        <!-- ============================================ -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom de l'école <span class="text-danger">*</span></label>
+                                <input type="text" name="nom" class="form-control" required
+                                       value="{{ ecole.nom|default:'' }}"
+                                       placeholder="Ex: École Fondamentale de Kalaban Coura">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Sigle</label>
+                                <input type="text" name="sigle" class="form-control"
+                                       value="{{ ecole.sigle|default:'' }}"
+                                       placeholder="Ex: EFKC">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ministère</label>
+                                <input type="text" name="ministere" class="form-control"
+                                       value="{{ ecole.ministere|default:'MINISTERE DE L\'EDUCATION NATIONALE' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Académie d'Enseignement</label>
+                                <input type="text" name="academie" class="form-control"
+                                       value="{{ ecole.academie|default:'' }}"
+                                       placeholder="Ex: Académie d'Enseignement de Bamako Rive Gauche">
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Circonscription (CAP)</label>
+                                <input type="text" name="circonscription" class="form-control"
+                                       value="{{ ecole.circonscription|default:'' }}"
+                                       placeholder="Ex: CAP DE KALABAN COURA">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom du directeur</label>
+                                <input type="text" name="nom_directeur" class="form-control"
+                                       value="{{ ecole.nom_directeur|default:'' }}">
+                            </div>
+                        </div>
+                        <!-- ============================================ -->
+                        <!-- TYPE D'ÉCOLE                                  -->
+                        <!-- ============================================ -->
+                        <hr>
+                        <h5 class="mb-3">
+                            <i class="fas fa-school me-1"></i> Type d'école
+                        </h5>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Type d'école</label>
+                            <select name="type_ecole" class="form-control">
+                                <option value="classique">
+                                    Classique (matières en français uniquement)
+                                </option>
+                                <option value="franco_arabe" selected>
+                                    Franco-arabe (matières en français + arabe)
+                                </option>
+                            </select>
+                            <div class="form-text">
+                                Détermine si le nom arabe des matières est affiché sur les bulletins.
+                            </div>
+                        </div>
+                        <!-- ============================================ -->
+                        <!-- MODES DE PAIEMENT ⭐                          -->
+                        <!-- ============================================ -->
+                        <hr>
+                        <h5 class="mb-3">
+                            <i class="fas fa-money-check-alt me-1"></i> Modes de paiement
+                        </h5>
+
+                        <div class="alert alert-warning small">
+                            <i class="fas fa-exclamation-triangle me-1"></i>
+                            Ces paramètres définissent comment les frais seront payés dans votre école.
+                            Vous pourrez les modifier plus tard dans les paramètres.
+                        </div>
+
+                        <!-- Mode frais d'inscription -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mode des frais d'inscription</label>
+                            <select name="mode_frais_inscription" class="form-control">
+                                <option value="annuel" selected>
+                                    Chaque année (à chaque inscription)
+                                </option>
+                                <option value="unique">
+                                    Une seule fois (à la 1ère inscription)
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Mode frais de scolarité -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mode des frais de scolarité</label>
+                            <select name="mode_frais_scolarite" class="form-control" id="id_mode_frais_scolarite">
+                                <option value="mensuel" selected>Mensuel (9 versements : Octobre → Juin)</option>
+                                <option value="trimestriel">Trimestriel (3 versements)</option>
+                                <option value="tranches">Par tranches personnalisées</option>
+                                <option value="annuel">Annuel (1 versement par an)</option>
+                                <option value="unique">Unique (1 seul versement pour tout le cursus)</option>
+                            </select>
+                        </div>
+
+                        <!-- Nombre de tranches -->
+                        <div class="mb-3" id="blocNombreTranches" style="display:none;">
+                            <label class="form-label fw-bold">Nombre de tranches</label>
+                            <input type="number" name="nombre_tranches" class="form-control"
+                                   min="2" max="12" value="4">
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- RÉPUBLIQUE / DEVISE                           -->
+                        <!-- ============================================ -->
+                        <hr>
+                        <h5 class="mb-3">
+                            <i class="fas fa-flag me-1"></i> En-tête des documents officiels
+                        </h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">République</label>
+                                <input type="text" name="republique" class="form-control"
+                                       value="{{ ecole.republique|default:'REPUBLIQUE DU MALI' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Devise</label>
+                                <input type="text" name="devise" class="form-control"
+                                       value="{{ ecole.devise|default:'UN PEUPLE - UN BUT - UNE FOI' }}">
+                            </div>
+                        </div>
+
+                        <!-- ============================================ -->
+                        <!-- COORDONNÉES                                   -->
+                        <!-- ============================================ -->
+                        <hr>
+                        <h5 class="mb-3">
+                            <i class="fas fa-map-marker-alt me-1"></i> Coordonnées
+                        </h5>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Adresse</label>
+                                <input type="text" name="adresse" class="form-control"
+                                       value="{{ ecole.adresse|default:'' }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Ville</label>
+                                <input type="text" name="ville" class="form-control"
+                                       value="{{ ecole.ville|default:'Bamako' }}">
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label class="form-label">Pays</label>
+                                <input type="text" name="pays" class="form-control"
+                                       value="{{ ecole.pays|default:'Mali' }}">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Téléphone</label>
+                                <input type="text" name="telephone" class="form-control"
+                                       value="{{ ecole.telephone|default:'' }}"
+                                       placeholder="Ex: 77 13 45 67">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" name="email" class="form-control"
+                                       value="{{ ecole.email|default:'' }}">
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Logo</label>
+                                <input type="file" name="logo" class="form-control" accept="image/*">
+                                <div class="form-text">Format carré recommandé (ex: 200x200 px)</div>
+                            </div>
+                        </div>
+
+                        <!-- BOUTONS -->
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                Étape suivante <i class="fas fa-arrow-right ms-1"></i>
+                            </button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPT : afficher le nombre de tranches si mode = tranches -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectMode = document.getElementById('id_mode_frais_scolarite');
+    const blocTranches = document.getElementById('blocNombreTranches');
+
+    function majTranches() {
+        blocTranches.style.display = (selectMode.value === 'tranches') ? '' : 'none';
+    }
+    majTranches();
+    selectMode.addEventListener('change', majTranches);
+});
+</script>
+{% endblock %}

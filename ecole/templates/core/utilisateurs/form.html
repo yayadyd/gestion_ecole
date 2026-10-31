@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ titre }}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+    <style>
+        :root { --core-primary: #34495e; --core-bg: #f4f7f6; }
+        body { background-color: var(--core-bg); }
+        .card-header { background-color: var(--core-primary); color: white; }
+        .btn-primary { background-color: var(--core-primary); border: none; }
+    </style>
+</head>
+<body>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h4>{{ titre }}</h4>
+                <a href="{% url 'core:utilisateur_list' %}" class="btn btn-secondary btn-sm"><i class="fas fa-arrow-left"></i> Retour</a>
+            </div>
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <form method="post" novalidate>
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Identifiant</label>
+                                {{ form.username }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Rôle</label>
+                                {{ form.role }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Prénom</label>
+                                {{ form.first_name }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Nom</label>
+                                {{ form.last_name }}
+                            </div>
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label">Email</label>
+                                {{ form.email }}
+                            </div>
+                            
+                            {% if not utilisateur %}
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Mot de passe</label>
+                                {{ form.password }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Confirmer</label>
+                                {{ form.password_confirm }}
+                            </div>
+                            {% endif %}
+                            
+                            <div class="col-md-12 mb-3 form-check ms-2">
+                                {{ form.is_active }}
+                                <label class="form-check-label">Compte actif</label>
+                            </div>
+                        </div>
+                        
+                        <div class="text-end mt-4">
+                            <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Enregistrer</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,227 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+{% block page_title %}Historique des bulletins mensuels - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-history me-2"></i>
+        Historique des bulletins mensuels
+        <small class="text-muted">{{ eleve.nomEleve }} {{ eleve.prenomEleve }}</small>
+    </h4>
+    <div>
+        <a href="{% url 'fondamental:eleve_detail' eleve.id %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <button onclick="window.print()" class="btn btn-secondary btn-sm">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+    </div>
+</div>
+
+<!-- Informations de l'élève -->
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <strong><i class="fas fa-id-card me-1"></i> Matricule :</strong>
+                <span class="badge bg-secondary">{{ eleve.matricule }}</span>
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-user me-1"></i> Nom :</strong> {{ eleve.nomEleve }}
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-user me-1"></i> Prénom :</strong> {{ eleve.prenomEleve }}
+            </div>
+            <div class="col-md-3">
+                <strong><i class="fas fa-calendar-alt me-1"></i> Naissance :</strong> {{ eleve.dateNaiss|date:"d/m/Y" }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sélection rapide par inscription -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Sélectionner une année scolaire</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-flex flex-wrap gap-2">
+            {% for inscription in inscriptions %}
+                {% if inscription.anneeScolaire %}
+                <a href="{% url 'fondamental:cycle1_bulletin_eleve' eleve.id inscription.anneeScolaire.anneeScolaire 10 %}"
+                   class="btn btn-outline-primary">
+                    <i class="fas fa-calendar-alt me-1"></i>
+                    {{ inscription.anneeScolaire.anneeScolaire }}
+                    <span class="badge bg-light text-dark ms-1">{{ inscription.classe.nomClasse }}</span>
+                </a>
+                {% endif %}
+            {% empty %}
+            <p class="text-muted mb-0">
+                <i class="fas fa-info-circle me-1"></i>
+                Aucune inscription en 1er cycle trouvée pour cet élève.
+            </p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Résultats par année -->
+<div class="row">
+    {% for annee, data in resultats_par_annee.items %}
+    <div class="col-md-6 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {{ annee }}
+                </h5>
+                <span class="badge bg-light text-dark">
+                    {{ data.resultats|length }} composition(s)
+                </span>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">
+                    <i class="fas fa-chalkboard me-1"></i>
+                    Classe : <strong>{{ data.inscription.classe.nomClasse }}</strong>
+                </p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Mois</th>
+                                <th class="text-center">Moyenne</th>
+                                <th class="text-center">Rang</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for resultat in data.resultats %}
+                            <tr>
+                                <td>
+                                    <i class="fas fa-file-alt me-1 text-primary"></i>
+                                    {{ resultat.composition.get_mois_display }}
+                                </td>
+                                <td class="text-center">
+                                    <strong class="{% if resultat.moyenne_generale >= 12 %}text-success{% elif resultat.moyenne_generale >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                        {{ resultat.moyenne_generale }}/20
+                                    </strong>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge {% if resultat.rang <= 3 %}bg-success{% elif resultat.rang <= 10 %}bg-primary{% elif resultat.rang <= 20 %}bg-warning{% else %}bg-secondary{% endif %}">
+                                        {{ resultat.rang|default:"-" }}
+                                    </span>
+                                </td>
+                                <td class="text-center">
+                                    <a href="{% url 'fondamental:cycle1_bulletin_eleve' eleve.id annee resultat.composition.mois %}"
+                                       class="btn btn-sm btn-info"
+                                       title="Voir le bulletin">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Aucun résultat pour cette année
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucun bulletin mensuel disponible pour cet élève.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Graphique d'évolution (toutes années confondues) -->
+{% if resultats_par_annee %}
+<div class="card mt-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-line me-2"></i>
+            Évolution des moyennes mensuelles
+        </h5>
+    </div>
+    <div class="card-body">
+        <canvas id="chartEvolution"></canvas>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartEvolution');
+    if (!ctx) return;
+
+    const labels = [];
+    const data = [];
+
+    {% for annee, data_annee in resultats_par_annee.items %}
+        {% for resultat in data_annee.resultats %}
+            labels.push("{{ resultat.composition.get_mois_display|escapejs }} {{ annee }}");
+            data.push({{ resultat.moyenne_generale }});
+        {% endfor %}
+    {% endfor %}
+
+    if (labels.length > 0) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Moyenne mensuelle',
+                    data: data,
+                    borderColor: 'rgba(23, 162, 184, 1)',
+                    backgroundColor: 'rgba(23, 162, 184, 0.2)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.1,
+                    pointBackgroundColor: data.map(m =>
+                        m >= 12 ? 'rgba(40, 167, 69, 1)' :
+                        m >= 10 ? 'rgba(255, 193, 7, 1)' :
+                        'rgba(220, 53, 69, 1)'
+                    ),
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Évolution des moyennes de {{ eleve.nomEleve }} {{ eleve.prenomEleve }}'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 20,
+                        ticks: {
+                            callback: function(value) { return value + '/20'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+}
+</style>
+{% endblock %}

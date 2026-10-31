@@ -1,0 +1,69 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Certificat de fréquentation - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4><i class="fas fa-file-alt me-2"></i> Certificat de fréquentation</h4>
+    <div>
+        <button onclick="window.print()" class="btn btn-secondary btn-sm">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+        <a href="{% url 'fondamental:certificat_frequentation_pdf' eleve.id annee_scolaire %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Télécharger en PDF
+        </a>
+        <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.id %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour au dossier
+        </a>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body certificat-container">
+        <div class="row mb-4">
+            <div class="col-6">
+                <strong>{{ ecole.ministere }}</strong><br>
+                <strong>{{ ecole.circonscription }}</strong><br>
+                ******************************<br>
+                <small>TEL : {{ ecole.telephone|default:"" }}</small>
+            </div>
+            <div class="col-6 text-center">
+                <strong>{{ ecole.republique }}</strong><br>
+                <strong>{{ ecole.devise }}</strong><br>
+                ******************************
+            </div>
+        </div>
+
+        <h4 class="text-center text-decoration-underline fw-bold my-5">CERTIFICAT DE FREQUENTATION SCOLAIRE</h4>
+
+        <div class="certificat-corps">
+            <p>Je soussigné, Directeur de la : <strong>{{ ecole.nom }}</strong>.</p>
+            <p>Certifie que le(la) nommé(e) : <strong>{{ eleve.prenomEleve }} {{ eleve.nomEleve|upper }}</strong></p>
+            <p>Né(e) le : <strong>{{ eleve.dateNaiss|date:"d/m/Y" }}</strong> à <strong>{{ eleve.lieuNaiss }}</strong></p>
+            <p>Fils(fille) de : <strong>{{ eleve.pere|default:"Non renseigné" }}</strong></p>
+            <p>Et de : <strong>{{ eleve.mere|default:"Non renseigné" }}</strong></p>
+            <p>Est élève dans mon établissement où il(elle) est inscrit(e) en classe de « <strong>{{ inscription.classe.nomClasse }}</strong> »</p>
+            <p>Pour l'année scolaire « <strong>{{ annee_scolaire }}</strong> » sous le N° MLE : <strong>{{ eleve.matricule }}</strong></p>
+            <p>Fait pour servir et valoir ce que de droit.</p>
+        </div>
+
+        <p class="mt-4"><em>NB : à ne délivrer que pour la constitution de dossiers administratifs.</em></p>
+
+        <div class="text-end mt-5">
+            <p>Fait à {{ ecole.ville|default:"" }}, le {{ date_jour|date:"d/m/Y" }}</p>
+            <p class="fw-bold text-decoration-underline mt-4">Le Directeur</p>
+            <p class="mt-5"><em>Cachet et signature</em></p>
+        </div>
+    </div>
+</div>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .certificat-container { padding: 30px; }
+}
+.certificat-corps p {
+    margin-bottom: 1rem;
+}
+</style>
+{% endblock %}

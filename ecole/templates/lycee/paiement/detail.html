@@ -1,0 +1,392 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Suivi des paiements - {{ eleve }}{% endblock %}
+
+{% block lycee_content %}
+
+<!-- ============================================================ -->
+<!-- EN-TÊTE AVEC SÉLECTEUR D'ANNÉE                                -->
+<!-- ============================================================ -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-money-bill-wave me-2"></i>
+        Suivi des paiements — {{ eleve.nom }} {{ eleve.prenom }}
+    </h4>
+    <div class="d-flex gap-2 align-items-center">
+        
+        {% if inscriptions_eleve|length > 1 %}
+        <label class="form-label mb-0 small text-muted">
+            <i class="fas fa-calendar me-1"></i> Année :
+        </label>
+        <select id="anneeSelectEleve"
+                class="form-select form-select-sm"
+                style="width: auto; min-width: 200px;">
+            {% for ins in inscriptions_eleve %}
+            <option value="{{ ins.id_inscription }}"
+                    {% if ins.id_inscription == inscription.id_inscription %}selected{% endif %}>
+                {{ ins.annee_scolaire.anneeScolaire }} — {{ ins.classe.nom }}
+            </option>
+            {% endfor %}
+        </select>
+        {% else %}
+        <span class="badge bg-secondary">
+            <i class="fas fa-calendar me-1"></i>
+            {{ annee_scolaire.anneeScolaire }}
+        </span>
+        {% endif %}
+        
+        <a href="{% url 'lycee:paiement_list' %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-list"></i> Liste paiements
+        </a>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- INFO ÉLÈVE                                                    -->
+<!-- ============================================================ -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2">
+        <div class="row">
+            <div class="col-md-3">
+                <small class="text-muted">Matricule</small>
+                <p class="mb-0"><code>{{ eleve.matricule }}</code></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Classe</small>
+                <p class="mb-0"><strong>{{ classe.nom }}</strong></p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Année scolaire</small>
+                <p class="mb-0">{{ annee_scolaire.anneeScolaire }}</p>
+            </div>
+            <div class="col-md-3">
+                <small class="text-muted">Statut</small>
+                <p class="mb-0">
+                    {% if montants.est_oriente %}
+                        <span class="badge bg-success">Orienté</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">Payant</span>
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- INFO MODES DE PAIEMENT                                        -->
+<!-- ============================================================ -->
+<div class="row mb-3">
+    <div class="col-md-6">
+        <div class="alert alert-info mb-0 py-2">
+            <strong><i class="fas fa-file-invoice me-1"></i> Frais d'inscription :</strong>
+            {{ montants.mode_frais_inscription }}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="alert alert-primary mb-0 py-2">
+            <strong><i class="fas fa-graduation-cap me-1"></i> Scolarité :</strong>
+            {{ montants.mode_frais_scolarite }}
+            {% if montants.mode_frais_scolarite_code == 'tranches' %}
+                ({{ montants.nombre_tranches }} tranches)
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- STATUT ÉLÈVE ORIENTÉ -->
+{% if montants.est_oriente %}
+<div class="alert alert-success">
+    <i class="fas fa-check-circle me-1"></i>
+    <strong>Élève orienté par l'État</strong> — Aucun frais n'est à sa charge.
+</div>
+{% endif %}
+
+<!-- ============================================================ -->
+<!-- CARTES DE RÉSUMÉ                                              -->
+<!-- ============================================================ -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-3">
+                <h6 class="mb-0"><i class="fas fa-file-invoice me-1"></i> Frais d'inscription</h6>
+                <h3 class="mb-0">{{ montants.frais_inscription_attendu|floatformat:0 }} FCFA</h3>
+                <small>
+                    {% if montants.frais_inscription_historique %}
+                        <i class="fas fa-history"></i> Payé avant l'app
+                    {% elif montants.frais_inscription_attendu == 0 %}
+                        <i class="fas fa-info-circle"></i> Non applicable
+                    {% elif montants.frais_inscription_paye >= montants.frais_inscription_attendu %}
+                        <i class="fas fa-check-circle"></i> Payé
+                    {% else %}
+                        <i class="fas fa-clock"></i>
+                        Reste : {{ montants.frais_inscription_reste|floatformat:0 }} FCFA
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body py-3">
+                <h6 class="mb-0"><i class="fas fa-graduation-cap me-1"></i> Scolarité</h6>
+                <h3 class="mb-0">{{ montants.scolarite_attendue|floatformat:0 }} FCFA</h3>
+                <small>
+                    {% if montants.scolarite_payee >= montants.scolarite_attendue %}
+                        <i class="fas fa-check-circle"></i> Soldée
+                    {% else %}
+                        <i class="fas fa-clock"></i>
+                        Payé : {{ montants.scolarite_payee|floatformat:0 }} FCFA
+                        ({{ montants.nb_echeances_payees }}/{{ montants.nb_echeances }})
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card {% if montants.reste <= 0 %}bg-success{% else %}bg-danger{% endif %} text-white">
+            <div class="card-body py-3">
+                <h6 class="mb-0"><i class="fas fa-calculator me-1"></i> Total</h6>
+                <h3 class="mb-0">{{ montants.total_attendu|floatformat:0 }} FCFA</h3>
+                <small>
+                    Payé : {{ montants.total_paye|floatformat:0 }} FCFA
+                    {% if montants.reste > 0 %}
+                    — Reste : {{ montants.reste|floatformat:0 }} FCFA
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DÉTAIL DES PAIEMENTS                                          -->
+<!-- ============================================================ -->
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <h5 class="mb-0"><i class="fas fa-table me-2"></i> Détail des paiements</h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-bordered table-hover mb-0">
+            <thead class="table-secondary">
+                <tr>
+                    <th style="width:130px;">Type</th>
+                    <th>Échéance</th>
+                    <th class="text-end" style="width:130px;">Montant dû</th>
+                    <th class="text-end" style="width:130px;">Payé</th>
+                    <th class="text-end" style="width:130px;">Reste</th>
+                    <th class="text-center" style="width:110px;">Statut</th>
+                    <th class="text-center" style="width:220px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+
+                <!-- FRAIS D'INSCRIPTION -->
+                <tr>
+                    <td><span class="badge bg-primary">Inscription</span></td>
+                    <td>
+                        {% if montants.frais_inscription_historique %}
+                            <em class="text-info"><i class="fas fa-history"></i> Payés avant l'app</em>
+                        {% elif montants.frais_inscription_attendu == 0 %}
+                            <em class="text-muted">Non applicable</em>
+                        {% else %}
+                            Frais d'inscription {{ annee_scolaire.anneeScolaire }}
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ montants.frais_inscription_attendu|floatformat:0 }} FCFA</td>
+                    <td class="text-end">{{ montants.frais_inscription_paye|floatformat:0 }} FCFA</td>
+                    <td class="text-end">
+                        {% if montants.frais_inscription_reste > 0 %}
+                            <span class="text-danger">{{ montants.frais_inscription_reste|floatformat:0 }} FCFA</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if montants.frais_inscription_historique %}
+                            <span class="badge bg-info"><i class="fas fa-history"></i> Avant app</span>
+                        {% elif montants.frais_inscription_attendu == 0 %}
+                            <span class="badge bg-secondary">N/A</span>
+                        {% elif montants.frais_inscription_paye >= montants.frais_inscription_attendu %}
+                            <span class="badge bg-success">Payé</span>
+                        {% elif montants.frais_inscription_paye > 0 %}
+                            <span class="badge bg-warning text-dark">Partiel</span>
+                        {% else %}
+                            <span class="badge bg-danger">Non payé</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if not montants.frais_inscription_historique and montants.frais_inscription_attendu > 0 and montants.frais_inscription_paye < montants.frais_inscription_attendu %}
+                            <a href="{% url 'lycee:paiement_create' %}?inscription={{ inscription.id_inscription }}&est_inscription=on"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus"></i>
+                                {% if montants.frais_inscription_paye > 0 %}Compléter{% else %}Payer{% endif %}
+                            </a>
+                        {% endif %}
+                        {% if montants.paiements_inscription_liste %}
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseInscription">
+                                <i class="fas fa-list"></i> ({{ montants.paiements_inscription_liste|length }})
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Détail inscription -->
+                {% if montants.paiements_inscription_liste %}
+                <tr class="collapse" id="collapseInscription">
+                    <td colspan="7" class="bg-light p-0">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Montant</th>
+                                    <th>Observation</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in montants.paiements_inscription_liste %}
+                                <tr>
+                                    <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ p.montant|floatformat:0 }} FCFA</td>
+                                    <td><small class="text-muted">{{ p.observation|default:"—" }}</small></td>
+                                    <td class="text-end">
+                                        <a href="{% url 'lycee:paiement_update' p.id_paiement %}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                        <a href="{% url 'lycee:paiement_delete' p.id_paiement %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endif %}
+
+                <!-- SCOLARITÉ -->
+                {% for ech in montants.detail_echeances %}
+                <tr>
+                    <td>
+                        <span class="badge bg-secondary">{{ montants.mode_frais_scolarite|truncatechars:15 }}</span>
+                    </td>
+                    <td>
+                        <strong>{{ ech.libelle }}</strong>
+                        {% if ech.nb_paiements > 1 %}
+                            <br><small class="text-info"><i class="fas fa-info-circle"></i> {{ ech.nb_paiements }} paiements partiels</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ ech.attendu|floatformat:0 }} FCFA</td>
+                    <td class="text-end">{{ ech.paye|floatformat:0 }} FCFA</td>
+                    <td class="text-end">
+                        {% if ech.reste > 0 %}
+                            <span class="text-danger">{{ ech.reste|floatformat:0 }} FCFA</span>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if ech.paye >= ech.attendu %}
+                            <span class="badge bg-success">Payé</span>
+                        {% elif ech.paye > 0 %}
+                            <span class="badge bg-warning text-dark">Partiel</span>
+                        {% else %}
+                            <span class="badge bg-danger">Non payé</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if ech.reste > 0 %}
+                            <a href="{% url 'lycee:paiement_create' %}?inscription={{ inscription.id_inscription }}{% if ech.mois %}&mois={{ ech.mois }}&annee={{ ech.annee }}{% endif %}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-plus"></i>
+                                {% if ech.paye > 0 %}Compléter{% else %}Payer{% endif %}
+                            </a>
+                        {% endif %}
+                        {% if ech.nb_paiements > 0 %}
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseEch{{ ech.numero }}">
+                                <i class="fas fa-list"></i> ({{ ech.nb_paiements }})
+                            </button>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Détail paiements partiels -->
+                {% if ech.paiements_lies %}
+                <tr class="collapse" id="collapseEch{{ ech.numero }}">
+                    <td colspan="7" class="bg-light p-0">
+                        <table class="table table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th class="text-end">Montant</th>
+                                    <th>Observation</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in ech.paiements_lies %}
+                                <tr>
+                                    <td>{{ p.date_paiement|date:"d/m/Y" }}</td>
+                                    <td class="text-end">{{ p.montant|floatformat:0 }} FCFA</td>
+                                    <td><small class="text-muted">{{ p.observation|default:"—" }}</small></td>
+                                    <td class="text-end">
+                                        <a href="{% url 'lycee:paiement_update' p.id_paiement %}" class="btn btn-sm btn-warning"><i class="fas fa-edit"></i></a>
+                                        <a href="{% url 'lycee:paiement_delete' p.id_paiement %}" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+            <tfoot class="table-primary">
+                <tr>
+                    <td colspan="2"><strong>TOTAUX</strong></td>
+                    <td class="text-end"><strong>{{ montants.total_attendu|floatformat:0 }} FCFA</strong></td>
+                    <td class="text-end"><strong>{{ montants.total_paye|floatformat:0 }} FCFA</strong></td>
+                    <td class="text-end">
+                        <strong>
+                            {% if montants.reste > 0 %}
+                                <span class="text-danger">{{ montants.reste|floatformat:0 }} FCFA</span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </strong>
+                    </td>
+                    <td colspan="2" class="text-center">
+                        <strong>
+                            {% if montants.total_paye >= montants.total_attendu %}
+                                <span class="text-success">✅ Soldé</span>
+                            {% else %}
+                                <span class="text-danger">Reste : {{ montants.reste|floatformat:0 }} FCFA</span>
+                            {% endif %}
+                        </strong>
+                    </td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SCRIPT : Changement d'année                                   -->
+<!-- ============================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAnnee = document.getElementById('anneeSelectEleve');
+    if (selectAnnee) {
+        selectAnnee.addEventListener('change', function () {
+            const inscriptionId = this.value;
+            const url = "{% url 'lycee:paiement_detail' 0 %}".replace('0', inscriptionId);
+            window.location.href = url;
+        });
+    }
+});
+</script>
+
+{% endblock %}

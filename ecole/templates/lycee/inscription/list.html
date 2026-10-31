@@ -1,0 +1,204 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Inscriptions Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-user-plus me-2"></i>
+        Inscriptions au Lycée
+        <span class="badge bg-primary ms-2">{{ page_obj.paginator.count }}</span>
+    </h4>
+    <a href="{% url 'lycee:inscription_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle inscription
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <!-- Année scolaire -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Année scolaire</label>
+                <select name="annee" class="form-select" id="selectAnnee" onchange="this.form.submit()">
+                    <option value="">Toutes les années</option>
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if annee_filtre == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Niveau -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Niveau</label>
+                <select name="niveau" class="form-select">
+                    <option value="">Tous les niveaux</option>
+                    <option value="10" {% if niveau_filtre == '10' %}selected{% endif %}>10ème Année</option>
+                    <option value="11" {% if niveau_filtre == '11' %}selected{% endif %}>11ème Année</option>
+                    <option value="12" {% if niveau_filtre == '12' %}selected{% endif %}>Terminale</option>
+                </select>
+            </div>
+
+            <!-- Classe -->
+            <div class="col-md-3">
+                <label class="form-label small text-muted">Classe</label>
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id_classe }}"
+                            {% if classe_filtre == c.id_classe|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nom }}
+                        {% if c.serie %} ({{ c.get_serie_display }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Bouton -->
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+
+            <!-- Réinitialiser -->
+            {% if annee_filtre or niveau_filtre or classe_filtre %}
+            <div class="col-12 mt-2">
+                <a href="{% url 'lycee:inscription_list' %}" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-times"></i> Réinitialiser les filtres
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Tableau -->
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-table me-1"></i>
+            {{ page_obj.paginator.count }} inscription{{ page_obj.paginator.count|pluralize }}
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Élève</th>
+                        <th>Matricule</th>
+                        <th>Classe</th>
+                        <th>Niveau / Série</th>
+                        <th>Année scolaire</th>
+                        <th>Statut</th>
+                        <th class="text-center">Frais hist.</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ins in inscriptions %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'lycee:eleve_detail' ins.eleve.pk %}">
+                                <strong>{{ ins.eleve.nom }} {{ ins.eleve.prenom }}</strong>
+                            </a>
+                        </td>
+                        <td><code>{{ ins.eleve.matricule }}</code></td>
+                        <td><span class="badge bg-primary">{{ ins.classe.nom }}</span></td>
+                        <td>
+                            {{ ins.classe.get_niveau_display }}
+                            {% if ins.classe.serie %}
+                                — <span class="badge bg-info">{{ ins.classe.get_serie_display }}</span>
+                            {% else %}
+                                — <span class="badge bg-light text-dark">CG</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ ins.annee_scolaire.anneeScolaire }}</td>
+                        <!-- ✅ Statut -->
+                        <td>
+                            {% if ins.eleve.statut == 'oriente' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Orienté
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-user-graduate"></i> Payant
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if ins.frais_inscription_historique %}
+                                <span class="badge bg-info">Payé</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <!-- ✅ BOUTON CARTE -->
+                                <a href="{% url 'lycee:carte_lycee_preview' ins.id_inscription %}" 
+                                class="btn btn-primary" title="Voir la carte">
+                                    <i class="fas fa-id-card"></i>
+                                </a>
+                                
+                                <a href="{% url 'lycee:inscription_update' ins.pk %}"
+                                class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'lycee:inscription_delete' ins.pk %}"
+                                class="btn btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <p class="mb-2">Aucune inscription trouvée.</p>
+                            <a href="{% url 'lycee:inscription_create' %}" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Créer une première inscription
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}{% if niveau_filtre %}&niveau={{ niveau_filtre }}{% endif %}{% if classe_filtre %}&classe={{ classe_filtre }}{% endif %}">
+                    Précédent
+                </a>
+            </li>
+        {% endif %}
+        <li class="page-item active">
+            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}{% if niveau_filtre %}&niveau={{ niveau_filtre }}{% endif %}{% if classe_filtre %}&classe={{ classe_filtre }}{% endif %}">
+                    Suivant
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

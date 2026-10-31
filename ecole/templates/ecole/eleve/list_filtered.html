@@ -1,0 +1,326 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Liste des élèves{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4>
+        <i class="fas fa-users me-2"></i>
+        Liste des élèves
+        <span class="badge bg-primary ms-2">{{ total_eleves }}</span>
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-secondary{% endif %} ms-1">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'fondamental:eleve_list_filtered_pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+           class="btn btn-danger" title="Exporter en PDF">
+            <i class="fas fa-file-pdf"></i> Exporter PDF
+        </a>
+        <a href="{% url 'fondamental:eleve_list' %}" class="btn btn-info">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3 no-print">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:eleve_list_filtered' %}?cycle=1er{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:eleve_list_filtered' %}?cycle=2e{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:eleve_list_filtered' %}{% if request.GET.annee or request.GET.search %}?{% if request.GET.annee %}annee={{ request.GET.annee }}{% endif %}{% if request.GET.annee and request.GET.search %}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}{% endif %}{% endif %}">
+            <i class="fas fa-list me-1"></i> Tous
+        </a>
+    </li>
+</ul>
+
+<!-- Filtres -->
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+            <!-- Recherche -->
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" 
+                           name="search" 
+                           class="form-control" 
+                           placeholder="Rechercher par nom, prénom ou matricule..."
+                           value="{{ search }}">
+                </div>
+            </div>
+            
+            <!-- Filtre classe -->
+            <div class="col-md-3">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for classe in classes %}
+                    <option value="{{ classe.idClasse }}" 
+                            {% if classe_id|add:"0" == classe.idClasse %}selected{% endif %}>
+                        {{ classe.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Filtre année -->
+            <div class="col-md-3">
+                <select name="annee" class="form-select">
+                    <option value="">Toutes les années</option>
+                    {% for annee in annees %}
+                    <option value="{{ annee.idAnneeScolaire }}" 
+                            {% if annee_id|add:"0" == annee.idAnneeScolaire %}selected{% endif %}>
+                        {{ annee.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Boutons -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+            
+            <!-- Réinitialiser -->
+            {% if search or classe_id or annee_id %}
+            <div class="col-12">
+                <a href="{% url 'fondamental:eleve_list_filtered' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Réinitialiser les filtres
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Liste des élèves -->
+<div class="card">
+    <div class="card-body">
+        <!-- En-tête pour l'impression -->
+        <div class="text-center mb-3 print-header">
+            <h3 class="text-uppercase">Liste des élèves</h3>
+            <h5>
+                {% if classe_nom %}
+                    <strong>Classe :</strong> {{ classe_nom }}
+                {% endif %}
+                {% if annee_nom %}
+                    <span class="ms-3"><strong>Année scolaire :</strong> {{ annee_nom }}</span>
+                {% endif %}
+                {% if not classe_nom and not annee_nom %}
+                    <span class="text-muted">Tous les élèves</span>
+                {% endif %}
+            </h5>
+            <hr>
+        </div>
+        
+        {% if eleves %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>N°</th>
+                        <th>Matricule</th>
+                        <th>Prenoms</th>
+                        <th>noms</th>
+                        <th>Date naiss.</th>
+                        <th>Lieu naiss.</th>
+                        <th>Cycle</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eleve in eleves %}
+                        <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ eleve.matricule }}</td>
+                        <td>{{ eleve.prenomEleve|upper }}</td>
+                        <td>{{ eleve.nomEleve }}</td>
+                        <td>{{ eleve.dateNaiss|date:"d/m/Y" }}</td>
+                        <td>{{ eleve.lieuNaiss }}</td>
+                        <td>
+                            {% with inscription=eleve.inscription_set.first %}
+                                {% if inscription and inscription.classe %}
+                                <span class="badge {% if inscription.classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {{ inscription.classe.get_cycle_display }}
+                                </span>
+                                {% else %}
+                                <span class="text-muted">-</span>
+                                {% endif %}
+                            {% endwith %}
+                        </td>
+                        <td class="no-print">
+                            <!-- "Menu deroulant"
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li><a class="dropdown-item" href="{% url 'fondamental:eleve_detail' eleve.pk %}">
+                                        <i class="fas fa-eye text-info me-2"></i> Voir détails
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'fondamental:dossier_scolaire_eleve' eleve.pk %}">
+                                        <i class="fas fa-folder-open text-dark me-2"></i> Dossier scolaire
+                                    </a></li>
+                                    <li><a class="dropdown-item" href="{% url 'fondamental:statistiques_eleve' eleve.pk %}">
+                                        <i class="fas fa-chart-bar text-secondary me-2"></i> Statistiques
+                                    </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'fondamental:eleve_update' eleve.pk %}">
+                                        <i class="fas fa-edit text-warning me-2"></i> Modifier
+                                    </a></li>
+                                    <li><a class="dropdown-item text-danger" href="{% url 'fondamental:eleve_delete' eleve.pk %}">
+                                        <i class="fas fa-trash me-2"></i> Supprimer
+                                    </a></li>
+                                </ul>
+                            </div>
+                            -->
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:eleve_detail' eleve.pk %}" class="btn btn-info" title="Voir">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.pk %}" class="btn btn-dark" title="Dossier scolaire">
+                                    <i class="fas fa-folder-open"></i>
+                                </a>
+                                <a href="{% url 'fondamental:eleve_update' eleve.pk %}" class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if eleve.cycle_actuel == '1er' %}
+                                <a href="{% url 'fondamental:cycle1_bulletins_eleve_annee' eleve.pk %}"
+                                class="btn btn-outline-primary" title="Bulletins mensuels (1er cycle)">
+                                    <i class="fas fa-calendar-check"></i>
+                                </a>
+                                {% elif eleve.cycle_actuel == '2e' %}
+                                <a href="{% url 'fondamental:cycle2_bulletins_eleve_annee' eleve.pk %}"
+                                class="btn btn-primary" title="Bulletins trimestriels (2e cycle)">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                                {% else %}
+                                <a href="#" class="btn btn-outline-secondary disabled" title="Aucune inscription">
+                                    <i class="fas fa-file-alt"></i>
+                                </a>
+                                {% endif %}
+                                {% if perms.ecole.change_ecoleinfo %}
+                                        <form method="post" action="{% url 'fondamental:eleve_regenerer_matricule' eleve.pk %}"
+                                            onsubmit="return confirm('Changer le matricule ? Les cartes déjà imprimées ne seront plus à jour.');">
+                                        {% csrf_token %}
+                                        <!--<input type="text" name="matricule" class="form-control form-control-sm"
+                                                placeholder="Nouveau matricule (vide = recalcul automatique)">-->
+                                        <button type="submit" class="btn btn-sm btn-outline-warning mt-1">Régénérer le MLLE</button>
+                                        </form>
+                                        {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="8">
+                            <strong>Total : {{ total_eleves }} élève(s)</strong>
+                            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucun élève trouvé avec ces critères.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+@media print {
+    /* Cacher les éléments non imprimables */
+    .no-print {
+        display: none !important;
+    }
+    
+    /* Style pour l'impression */
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    
+    .card-body {
+        padding: 10px !important;
+    }
+    
+    .table {
+        font-size: 11px;
+    }
+    
+    .table th, .table td {
+        padding: 4px !important;
+    }
+    
+    .table-dark {
+        background-color: #343a40 !important;
+        color: white !important;
+    }
+    
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #f8f9fa !important;
+    }
+    
+    .print-header {
+        margin-bottom: 20px !important;
+    }
+    
+    .print-header h3 {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
+    
+    .print-header h5 {
+        font-size: 14px !important;
+    }
+    
+    .table-bordered {
+        border: 1px solid #000 !important;
+    }
+    
+    .table-bordered th,
+    .table-bordered td {
+        border: 1px solid #000 !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Recherche automatique après 500ms d'inactivité
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+{% endblock %}

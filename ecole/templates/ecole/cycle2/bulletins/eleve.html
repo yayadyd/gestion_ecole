@@ -1,0 +1,458 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+
+{% block page_title %}Bulletin - {{ eleve }}{% endblock %}
+
+{% block content %}
+<!-- Version écran (avec boutons) -->
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4>
+        <i class="fas fa-file-alt me-2"></i>
+        Bulletin de {{ eleve.prenomEleve }} {{ eleve.nomEleve }}
+        <small class="text-muted">{{ annee_scolaire }}</small>
+    </h4>
+    <div>
+        <div class="btn-group btn-group-sm me-2">
+            {% for key, value in trimestres.items %}
+            <a href="{% url 'fondamental:cycle2_bulletin_eleve' eleve.id annee_scolaire key %}"
+               class="btn {% if key == trimestre %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ value|slice:":10" }}
+            </a>
+            {% endfor %}
+        </div>
+        
+        <a href="{% url 'fondamental:cycle2_bulletin_eleve_pdf' eleve.id annee_scolaire trimestre %}"
+        class="btn btn-danger btn-sm" title="Télécharger ce bulletin en PDF">
+            <i class="fas fa-file-pdf"></i> Exporter PDF
+        </a>
+        <a href="{% url 'fondamental:cycle2_bulletins_classe' annee_scolaire trimestre %}" class="btn btn-info btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <a href="{% url 'fondamental:cycle2_bulletins_eleve_annee' eleve.id %}" class="btn btn-primary btn-sm">
+            <i class="fas fa-history"></i> Historique
+        </a>
+    </div>
+</div>
+
+<!-- BULLETIN DE NOTES -->
+<div class="card">
+    <div class="card-body bulletin-container">
+
+        <!-- ============ EN-TÊTE 3 ZONES (comme le PDF) ============ -->
+        <div class="entete-bulletin">
+            <!-- Zone gauche : CAP / École / Téléphone -->
+            <div class="entete-gauche">
+                {% if ecole.circonscription %}
+                <div class="entete-ligne">{{ ecole.circonscription }}</div>
+                {% endif %}
+                {% if ecole.nom %}
+                <div class="entete-ligne fw-bold">{{ ecole.nom }}</div>
+                {% endif %}
+                {% if ecole.telephone %}
+                <div class="entete-ligne">Tel: {{ ecole.telephone }}</div>
+                {% endif %}
+            </div>
+
+            <!-- Zone centre : Logo -->
+            <div class="entete-centre">
+                {% if ecole.logo %}
+                <img src="{{ ecole.logo.url }}" alt="Logo {{ ecole.nom }}" class="entete-logo">
+                {% endif %}
+            </div>
+
+            <!-- Zone droite : République / Devise -->
+            <div class="entete-droite">
+                {% if ecole.republique %}
+                <div class="entete-ligne fw-bold">{{ ecole.republique }}</div>
+                {% endif %}
+                {% if ecole.devise %}
+                <div class="entete-ligne">{{ ecole.devise }}</div>
+                {% endif %}
+            </div>
+        </div>
+        <hr class="entete-separateur">
+        <!-- ============ FIN EN-TÊTE ============ -->
+
+        <!-- Titre du bulletin -->
+        <div class="text-center mb-4">
+            <h2 class="text-uppercase">BULLETIN DE NOTES</h2>
+            <h5 class="text-muted">{{ trimestre }}</h5>
+            <div class="row mt-3">
+                <div class="col-md-8 text-start">
+                    <h5><strong>Prénoms et noms :</strong> {{ eleve.prenomEleve }} {{ eleve.nomEleve|upper }}</h5>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h5><strong>Année scolaire :</strong> {{ annee_scolaire }}</h5>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-8 text-start">
+                    <h5><strong>Classe :</strong> {{ inscription.classe.nomClasse }}</h5>
+                </div>
+                <div class="col-md-4 text-end">
+                    <h5><strong>Date d'édition :</strong> {% now "d/m/Y" %}</h5>
+                </div>
+            </div>
+        </div>
+
+        {% if resultat %}
+        <!-- Tableau des notes -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Matières</th>
+                        <th class="text-center">Coeff</th>
+                        <th class="text-center">Notes classe</th>
+                        <th class="text-center">Notes compo*2</th>
+                        <th class="text-center">Notes Générale</th>
+                        <th class="text-center">Notes Coeff</th>
+                        {% if est_franco_arabe %}
+                                    <th>Arabe</th>
+                                {% endif %}<th>Appréciations</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for detail in resultat.details.all %}
+                <tr>
+                    <td><strong>{{ detail.matiere.nomMatiere }}</strong></td>
+                    <td class="text-center">{{ detail.coef|floatformat:1 }}</td>
+                    <td class="text-center">{{ detail.note_classe|floatformat:2 }}</td>
+                    <td class="text-center">{{ detail.note_compo|floatformat:2 }}</td>
+                    <td class="text-center
+                        {% if detail.moyenne_generale >= 16 %}text-success
+                        {% elif detail.moyenne_generale >= 14 %}text-primary
+                        {% elif detail.moyenne_generale >= 12 %}text-info
+                        {% elif detail.moyenne_generale >= 10 %}text-warning
+                        {% else %}text-danger{% endif %}">
+                        <strong>{{ detail.moyenne_generale|floatformat:2 }}</strong>
+                    </td>
+                    <td class="text-center">{{ detail.moyenne_coefficientee|floatformat:2 }}</td>
+                        {% if est_franco_arabe %}
+                                <td dir="rtl">{{ detail.matiere.nomArabe|default:"—" }}</td>
+                        {% endif %}<td>
+                        <span class="badge
+                            {% if detail.appreciation == 'Très Bien' %}bg-success
+                            {% elif detail.appreciation == 'Bien' %}bg-primary
+                            {% elif detail.appreciation == 'Assez Bien' %}bg-info
+                            {% elif detail.appreciation == 'Passable' %}bg-warning
+                            {% elif detail.appreciation == 'Insuffisant' %}bg-danger
+                            {% else %}bg-dark{% endif %}">
+                            {{ detail.appreciation }}
+                        </span>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Résultats -->
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card bg-light">
+            <div class="card-body">
+                <h5 class="mb-3">
+                    <i class="fas fa-chart-bar me-1"></i> Résultats
+                </h5>
+                <table class="table table-sm mb-0">
+                    <tbody>
+                        <!-- Total des moyennes coefficientées -->
+                        <tr>
+                            <td><strong>Total des moyennes coefficientées :</strong></td>
+                            <td class="text-end">
+                                <strong class="text-primary fs-5">
+                                    {{ total_moyennes_coefficientees|floatformat:2 }}
+                                </strong>
+                            </td>
+                        </tr>
+
+                        <!-- Somme des coefficients -->
+                        <tr>
+                            <td><strong>Somme des coefficients :</strong></td>
+                            <td class="text-end">
+                                <strong>{{ total_coefficients|floatformat:0 }}</strong>
+                            </td>
+                        </tr>
+
+                        <!-- Moyenne générale -->
+                        <tr>
+                            <td><strong>Moyenne générale :</strong></td>
+                            <td class="text-end">
+                                <strong class="fs-5
+                                    {% if moyenne_generale >= 12 %}text-success
+                                    {% elif moyenne_generale >= 10 %}text-warning
+                                    {% else %}text-danger{% endif %}">
+                                    {{ moyenne_generale|floatformat:2 }}/20
+                                </strong>
+                            </td>
+                        </tr>
+                        <!-- Rang -->
+                        <tr>
+                            <td><strong>Rang :</strong></td>
+                            <td class="text-end">
+                                {% if rang_affiche == "1er" %}
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fas fa-trophy"></i> 1er
+                                    </span>
+                                {% elif rang_affiche == "1ère" %}
+                                    <span class="badge bg-warning text-dark fs-6">
+                                        <i class="fas fa-trophy"></i> 1ère
+                                    </span>
+                                {% elif rang_affiche != "-" %}
+                                    <span class="badge bg-secondary fs-6">
+                                        {{ rang_affiche }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                                <br>
+                                <small class="text-muted">
+                                    sur {{ effectif_classe }} élève{{ effectif_classe|pluralize }}
+                                </small>
+                            </td>
+                        </tr>
+
+                        <!-- Moyenne du 1er de la classe -->
+                        <tr>
+                            <td><strong>Moyenne du 1er de la classe :</strong></td>
+                            <td class="text-end">
+                                <strong class="text-warning">
+                                    {{ moyenne_premier|floatformat:2 }}/20
+                                </strong>
+                                {% if nom_premier_eleve %}
+                                <br>
+                                <small class="text-muted">({{ nom_premier_eleve }})</small>
+                                {% endif %}
+                            </td>
+                        </tr>
+
+                        <!-- Moyenne de la classe -->
+                        <tr>
+                            <td><strong>Moyenne de la classe :</strong></td>
+                            <td class="text-end">
+                                <strong>{{ class_stats.moyenne_classe|floatformat:2 }}/20</strong>
+                            </td>
+                        </tr>
+
+                        <!-- Effectif -->
+                        <tr>
+                            <td><strong>Effectif :</strong></td>
+                            <td class="text-end">
+                                <strong>{{ effectif_classe }} élèves</strong>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+        <!-- Appréciation générale -->
+        <div class="mt-3">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5>Appréciation générale</h5>
+                    <p>
+                        {% if resultat.moyenne_generale >= 16 %}
+                            Excellent travail ! Félicitations pour vos résultats brillants.
+                        {% elif resultat.moyenne_generale >= 14 %}
+                            Très bon travail. Continuez sur cette lancée.
+                        {% elif resultat.moyenne_generale >= 12 %}
+                            Bon travail. Quelques efforts supplémentaires vous permettront de progresser.
+                        {% elif resultat.moyenne_generale >= 10 %}
+                            Travail satisfaisant. Vous pouvez faire mieux en vous appliquant davantage.
+                        {% else %}
+                            Des efforts sont nécessaires. N'hésitez pas à demander de l'aide.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="row mt-4">
+            <div class="col-6 text-center">
+                <p><strong>LE DIRECTEUR</strong></p>
+                <br><br>
+                <p>_________________</p>
+            </div>
+            <div class="col-6 text-center">
+                <p><strong>LES PARENTS</strong></p>
+                <br><br>
+                <p>_________________</p>
+            </div>
+        </div>
+
+        {% else %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            Aucun résultat disponible pour ce trimestre.
+            <a href="{% url 'fondamental:cycle2_calculer_moyennes' annee_scolaire trimestre %}" class="alert-link">
+                Calculer les moyennes
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Liens rapides -->
+<div class="card mt-3 no-print">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-link"></i> Liens rapides</h5>
+    </div>
+    <div class="card-body">
+        <div class="d-grid gap-2">
+            <a href="{% url 'fondamental:cycle2_bulletins_eleve_annee' eleve.id %}" class="btn btn-primary">
+                <i class="fas fa-history"></i> Historique complet
+            </a>
+            <a href="{% url 'fondamental:paiement_eleve_annee' eleve.id annee_scolaire %}" class="btn btn-outline-success btn-sm">
+                <i class="fas fa-money-bill-wave"></i> Voir les paiements
+            </a>
+            <a href="{% url 'fondamental:eleve_detail' eleve.id %}" class="btn btn-outline-info btn-sm">
+                <i class="fas fa-user"></i> Fiche de l'élève
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique -->
+{% if resultat %}
+<div class="row mt-3 no-print">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Performances par matière</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartPerformances"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartPerformances');
+    if (!ctx) return;
+
+    const matieres = [];
+    const notes = [];
+
+    {% for detail in resultat.details.all %}
+        matieres.push("{{ detail.matiere.nomMatiere|slice:':15' }}");
+        notes.push({{ detail.moyenne_generale }});
+    {% endfor %}
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: matieres,
+            datasets: [{
+                label: 'Moyenne Générale',
+                data: notes,
+                backgroundColor: notes.map(n =>
+                    n >= 16 ? 'rgba(40, 167, 69, 0.8)' :
+                    n >= 14 ? 'rgba(0, 123, 255, 0.8)' :
+                    n >= 12 ? 'rgba(23, 162, 184, 0.8)' :
+                    n >= 10 ? 'rgba(255, 193, 7, 0.8)' :
+                    'rgba(220, 53, 69, 0.8)'
+                ),
+                borderColor: 'rgba(0, 0, 0, 0.2)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'top' },
+                title: { display: true, text: 'Moyennes Générales par matière' }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 20,
+                    ticks: { callback: function(value) { return value + '/20'; } }
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+/* ============================================================
+   EN-TÊTE 3 ZONES
+   ============================================================ */
+.entete-bulletin {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    padding: 10px 0;
+}
+.entete-gauche {
+    flex: 1;
+    text-align: left;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.entete-centre {
+    flex: 0 0 auto;
+    text-align: center;
+}
+.entete-logo {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+}
+.entete-droite {
+    flex: 1;
+    text-align: right;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+.entete-ligne {
+    margin-bottom: 2px;
+}
+.entete-separateur {
+    border-top: 2px solid #3498db;
+    margin: 5px 0 15px 0;
+    opacity: 1;
+}
+
+/* ============================================================
+   IMPRESSION
+   ============================================================ */
+@media print {
+    .no-print { display: none !important; }
+    .bulletin-container { padding: 20px; font-size: 11px; }
+    .card { border: none !important; box-shadow: none !important; page-break-inside: avoid; }
+    .card-body { padding: 10px !important; }
+    .table { font-size: 10px; }
+    .table th, .table td { padding: 4px !important; }
+    .badge {
+        border: 1px solid #ddd;
+        background-color: #f8f9fa !important;
+        color: #333 !important;
+    }
+    .text-success { color: #28a745 !important; }
+    .text-primary { color: #007bff !important; }
+    .text-info { color: #17a2b8 !important; }
+    .text-warning { color: #ffc107 !important; }
+    .text-danger { color: #dc3545 !important; }
+    .bg-light { background-color: #f8f9fa !important; }
+
+    /* En-tête : se répète sur chaque page imprimée */
+    .entete-bulletin {
+        page-break-inside: avoid;
+        page-break-after: avoid;
+    }
+    .entete-logo {
+        max-width: 80px;
+        max-height: 80px;
+    }
+}
+</style>
+{% endblock %}

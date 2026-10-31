@@ -1,0 +1,508 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}
+    {% if form.instance.pk %}
+        Modifier la plage horaire
+    {% else %}
+        Nouvelle plage horaire
+    {% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-section {
+        border-left: 4px solid #3498db;
+        padding-left: 15px;
+        margin-bottom: 25px;
+    }
+    .form-section h5 {
+        color: #2c3e50;
+        font-size: 1rem;
+        margin-bottom: 15px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .form-section h5 i {
+        color: #3498db;
+        margin-right: 8px;
+    }
+    .form-label {
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #495057;
+    }
+    .form-control:focus, .form-select:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
+    .required-field::after {
+        content: " *";
+        color: #e74c3c;
+        font-weight: bold;
+    }
+    .help-text {
+        font-size: 0.75rem;
+        color: #6c757d;
+        margin-top: 4px;
+    }
+    .info-box {
+        background: #eaf4fb;
+        border-left: 4px solid #3498db;
+        padding: 12px 15px;
+        border-radius: 5px;
+        font-size: 0.85rem;
+        margin-bottom: 20px;
+    }
+    .info-box i {
+        color: #3498db;
+    }
+    .apercu-plage {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        margin-top: 15px;
+    }
+    .apercu-plage .horaire {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2c3e50;
+        font-family: monospace;
+    }
+    .apercu-plage .libelle {
+        color: #6c757d;
+        font-style: italic;
+        margin-top: 5px;
+    }
+    .apercu-plage .badge-cycle {
+        margin-top: 10px;
+    }
+    .sticky-actions {
+        position: sticky;
+        bottom: 0;
+        background: white;
+        padding: 15px;
+        border-top: 2px solid #dee2e6;
+        z-index: 100;
+        margin-top: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="mb-0">
+        <i class="fas fa-clock me-2 text-primary"></i>
+        {% if form.instance.pk %}
+            Modifier la plage horaire :
+            <strong>
+                {{ form.instance.heure_debut|time:"H:i" }} -
+                {{ form.instance.heure_fin|time:"H:i" }}
+            </strong>
+        {% else %}
+            Nouvelle plage horaire
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:plage_horaire_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour à la liste
+    </a>
+</div>
+
+<!-- ✅ Affichage des erreurs globales -->
+{% if form.non_field_errors %}
+<div class="alert alert-danger">
+    <h6 class="mb-2">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Erreurs de validation
+    </h6>
+    <ul class="mb-0">
+        {% for error in form.non_field_errors %}
+        <li>{{ error }}</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- ✅ Affichage des erreurs par champ -->
+{% if form.errors and not form.non_field_errors %}
+<div class="alert alert-danger">
+    <h6 class="mb-2">
+        <i class="fas fa-exclamation-triangle me-1"></i>
+        Veuillez corriger les erreurs ci-dessous
+    </h6>
+    <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+            {% for error in errors %}
+            <li>
+                <strong>
+                    {% if field == 'cycle' %}Cycle
+                    {% elif field == 'ordre' %}Ordre
+                    {% elif field == 'heure_debut' %}Heure de début
+                    {% elif field == 'heure_fin' %}Heure de fin
+                    {% elif field == 'libelle' %}Libellé
+                    {% elif field == 'est_pause' %}Est une pause
+                    {% else %}{{ field }}{% endif %}
+                </strong> : {{ error }}
+            </li>
+            {% endfor %}
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
+<!-- Info -->
+<div class="info-box">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Rappel :</strong> Les plages horaires sont <strong>différenciées par cycle</strong>.
+    Une plage du 1er cycle ne peut pas chevaucher une autre plage du 1er cycle, mais
+    peut avoir les mêmes horaires qu'une plage du 2e cycle.
+</div>
+
+<!-- Formulaire -->
+<form method="post" id="plageForm" novalidate>
+    {% csrf_token %}
+
+    <div class="row g-4">
+        <!-- ============================================================ -->
+        <!-- COLONNE GAUCHE : Informations                                -->
+        <!-- ============================================================ -->
+        <div class="col-lg-7">
+
+            <!-- Section : Cycle -->
+            <div class="form-section">
+                <h5><i class="fas fa-layer-group"></i> Cycle concerné</h5>
+
+                <div class="mb-3">
+                    <label for="{{ form.cycle.id_for_label }}" class="form-label required-field">
+                        {{ form.cycle.label }}
+                    </label>
+                    {{ form.cycle }}
+                    <div class="help-text">
+                        <strong>1er cycle</strong> : classes de 1ère à 6ème Année<br>
+                        <strong>2e cycle</strong> : classes de 7ème A à 9ème A
+                    </div>
+                    {% if form.cycle.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.cycle.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Section : Horaire -->
+            <div class="form-section">
+                <h5><i class="fas fa-clock"></i> Horaire</h5>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.heure_debut.id_for_label }}" class="form-label required-field">
+                            {{ form.heure_debut.label }}
+                        </label>
+                        {{ form.heure_debut }}
+                        {% if form.heure_debut.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in form.heure_debut.errors %}
+                            <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="{{ form.heure_fin.id_for_label }}" class="form-label required-field">
+                            {{ form.heure_fin.label }}
+                        </label>
+                        {{ form.heure_fin }}
+                        {% if form.heure_fin.errors %}
+                        <div class="text-danger small mt-1">
+                            {% for error in form.heure_fin.errors %}
+                            <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="{{ form.ordre.id_for_label }}" class="form-label">
+                        {{ form.ordre.label }}
+                    </label>
+                    {{ form.ordre }}
+                    <div class="help-text">
+                        Plus petit = affiché en premier dans la grille.
+                        Ex : 1, 2, 3...
+                    </div>
+                    {% if form.ordre.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.ordre.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Section : Type de plage -->
+            <div class="form-section">
+                <h5><i class="fas fa-tag"></i> Type de plage</h5>
+
+                <div class="mb-3">
+                    <label for="{{ form.libelle.id_for_label }}" class="form-label">
+                        {{ form.libelle.label }}
+                    </label>
+                    {{ form.libelle }}
+                    <div class="help-text">
+                        Ex : Récréation, Pause déjeuner (facultatif).
+                    </div>
+                    {% if form.libelle.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.libelle.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-check">
+                        {{ form.est_pause }}
+                        <label class="form-check-label" for="{{ form.est_pause.id_for_label }}">
+                            {{ form.est_pause.label }}
+                        </label>
+                    </div>
+                    <div class="help-text">
+                        Cocher si c'est une pause (récréation, déjeuner).
+                        Aucune matière ne pourra être affectée sur cette plage.
+                    </div>
+                    {% if form.est_pause.errors %}
+                    <div class="text-danger small mt-1">
+                        {% for error in form.est_pause.errors %}
+                        <i class="fas fa-exclamation-circle me-1"></i> {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ============================================================ -->
+        <!-- COLONNE DROITE : Aperçu                                     -->
+        <!-- ============================================================ -->
+        <div class="col-lg-5">
+
+            <div class="form-section">
+                <h5><i class="fas fa-eye"></i> Aperçu</h5>
+
+                <div class="apercu-plage">
+                    <div class="horaire" id="apercuHoraire">--:-- - --:--</div>
+                    <div class="libelle" id="apercuLibelle"></div>
+                    <div class="badge-cycle" id="apercuCycle">
+                        <span class="badge bg-secondary">Cycle : —</span>
+                    </div>
+                    <div class="badge-cycle" id="apercuType">
+                        <span class="badge bg-success">Cours</span>
+                    </div>
+                </div>
+            </div>
+
+            {% if form.instance.pk %}
+            <div class="form-section">
+                <h5><i class="fas fa-info-circle"></i> Informations</h5>
+                <table class="table table-sm">
+                    <tbody>
+                        <tr>
+                            <td><strong>ID</strong></td>
+                            {# ✅ FIX : utiliser form.instance.pk au lieu de form.instance.id #}
+                            <td>{{ form.instance.pk }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Cycle actuel</strong></td>
+                            <td>
+                                <span class="badge {% if form.instance.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {{ form.instance.get_cycle_display }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="sticky-actions d-flex justify-content-between align-items-center">
+        <small class="text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Les champs marqués d'un <span class="text-danger fw-bold">*</span>
+            sont obligatoires
+        </small>
+        <div>
+            <button type="submit" class="btn btn-success" id="btnSubmit">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+            <a href="{% url 'fondamental:plage_horaire_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+        </div>
+    </div>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('✅ Formulaire plage horaire : script chargé');
+
+    // ============================================================
+    // RÉCUPÉRATION DES ÉLÉMENTS
+    // ============================================================
+    const cycleSelect = document.getElementById('id_cycle');
+    const heureDebutInput = document.getElementById('id_heure_debut');
+    const heureFinInput = document.getElementById('id_heure_fin');
+    const libelleInput = document.getElementById('id_libelle');
+    const estPauseInput = document.getElementById('id_est_pause');
+    const ordreInput = document.getElementById('id_ordre');
+    const form = document.getElementById('plageForm');
+
+    // ============================================================
+    // APERÇU EN TEMPS RÉEL
+    // ============================================================
+    const apercuHoraire = document.getElementById('apercuHoraire');
+    const apercuLibelle = document.getElementById('apercuLibelle');
+    const apercuCycle = document.getElementById('apercuCycle');
+    const apercuType = document.getElementById('apercuType');
+
+    function mettreAJourApercu() {
+        const debut = heureDebutInput ? heureDebutInput.value : '';
+        const fin = heureFinInput ? heureFinInput.value : '';
+        const libelle = libelleInput ? libelleInput.value : '';
+        const cycle = cycleSelect ? cycleSelect.value : '';
+        const estPause = estPauseInput ? estPauseInput.checked : false;
+
+        // Horaire
+        if (debut && fin) {
+            apercuHoraire.textContent = `${debut} → ${fin}`;
+        } else if (debut) {
+            apercuHoraire.textContent = `${debut} → --:--`;
+        } else if (fin) {
+            apercuHoraire.textContent = `--:-- → ${fin}`;
+        } else {
+            apercuHoraire.textContent = '--:-- - --:--';
+        }
+
+        // Libellé
+        apercuLibelle.textContent = libelle || '';
+
+        // Cycle
+        if (cycle === '1er') {
+            apercuCycle.innerHTML = '<span class="badge bg-info">1er Cycle</span>';
+        } else if (cycle === '2e') {
+            apercuCycle.innerHTML = '<span class="badge bg-primary">2e Cycle</span>';
+        } else {
+            apercuCycle.innerHTML = '<span class="badge bg-secondary">Cycle : —</span>';
+        }
+
+        // Type
+        if (estPause) {
+            apercuType.innerHTML = '<span class="badge bg-warning text-dark"><i class="fas fa-pause"></i> Pause</span>';
+        } else {
+            apercuType.innerHTML = '<span class="badge bg-success"><i class="fas fa-book"></i> Cours</span>';
+        }
+    }
+
+    if (cycleSelect) cycleSelect.addEventListener('change', mettreAJourApercu);
+    if (heureDebutInput) heureDebutInput.addEventListener('input', mettreAJourApercu);
+    if (heureFinInput) heureFinInput.addEventListener('input', mettreAJourApercu);
+    if (libelleInput) libelleInput.addEventListener('input', mettreAJourApercu);
+    if (estPauseInput) estPauseInput.addEventListener('change', mettreAJourApercu);
+
+    // Aperçu initial
+    mettreAJourApercu();
+
+    // ============================================================
+    // VALIDATION AVANT SOUMISSION
+    // ============================================================
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            console.log('📤 Soumission du formulaire');
+
+            let erreurs = [];
+
+            // Cycle
+            if (cycleSelect && !cycleSelect.value) {
+                erreurs.push("Le cycle est obligatoire");
+                cycleSelect.classList.add('is-invalid');
+            } else if (cycleSelect) {
+                cycleSelect.classList.remove('is-invalid');
+            }
+
+            // Heure début
+            if (heureDebutInput && !heureDebutInput.value) {
+                erreurs.push("L'heure de début est obligatoire");
+                heureDebutInput.classList.add('is-invalid');
+            } else if (heureDebutInput) {
+                heureDebutInput.classList.remove('is-invalid');
+            }
+
+            // Heure fin
+            if (heureFinInput && !heureFinInput.value) {
+                erreurs.push("L'heure de fin est obligatoire");
+                heureFinInput.classList.add('is-invalid');
+            } else if (heureFinInput) {
+                heureFinInput.classList.remove('is-invalid');
+            }
+
+            // Fin > début
+            if (heureDebutInput && heureFinInput &&
+                heureDebutInput.value && heureFinInput.value) {
+                if (heureFinInput.value <= heureDebutInput.value) {
+                    erreurs.push("L'heure de fin doit être postérieure à l'heure de début");
+                    heureFinInput.classList.add('is-invalid');
+                }
+            }
+
+            if (erreurs.length > 0) {
+                console.warn('❌ Erreurs de validation :', erreurs);
+                e.preventDefault();
+
+                // Afficher un message d'erreur
+                alert("Erreur :\n\n" + erreurs.join("\n"));
+
+                // Focus sur le premier champ en erreur
+                const premierErreur = document.querySelector('.is-invalid');
+                if (premierErreur) {
+                    premierErreur.focus();
+                    premierErreur.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center'
+                    });
+                }
+            } else {
+                console.log('✅ Formulaire valide, envoi au serveur...');
+            }
+        });
+    }
+
+    // ============================================================
+    // NETTOYER LES ERREURS À LA SAISIE
+    // ============================================================
+    document.querySelectorAll('.form-control, .form-select').forEach(function(input) {
+        input.addEventListener('input', function() {
+            this.classList.remove('is-invalid');
+        });
+        input.addEventListener('change', function() {
+            this.classList.remove('is-invalid');
+        });
+    });
+});
+</script>
+{% endblock %}

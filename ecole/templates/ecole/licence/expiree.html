@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Période d'essai terminée</title>
+
+    <link rel="icon" type="image/png" href="{% static 'img/icon_app.jpg' %}">
+
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+        .card-blocage {
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+            border: none;
+            max-width: 700px;
+            width: 100%;
+        }
+        .lock-icon { font-size: 4rem; color: #e74c3c; }
+
+        /* ✅ Style du bouton d'activation */
+        .btn-activer-licence {
+            background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+            border: none;
+            color: #fff;
+            padding: 14px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 10px;
+            transition: all 0.25s ease;
+            box-shadow: 0 6px 15px rgba(39, 174, 96, 0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+        .btn-activer-licence:hover {
+            background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 22px rgba(39, 174, 96, 0.45);
+        }
+        .btn-activer-licence:active {
+            transform: translateY(0);
+        }
+        .zone-activation {
+            border-top: 2px dashed #dee2e6;
+            padding-top: 25px;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card card-blocage mx-auto">
+            <div class="card-body p-5 text-center">
+                <div class="lock-icon mb-3">
+                    <i class="fas fa-lock"></i>
+                </div>
+
+                <h2 class="text-danger mb-3">Période d'essai terminée</h2>
+
+                <p class="lead mb-4">
+                    Votre période d'essai gratuite de 30 jours est arrivée à son terme.
+                </p>
+
+                <div class="alert alert-warning text-start mb-4">
+                    <h6 class="mb-2"><i class="fas fa-info-circle me-2"></i> Détails</h6>
+                    <ul class="mb-0 small">
+                        <li><strong>École :</strong> {{ ecole.nom }}</li>
+                        <li><strong>Début de l'essai :</strong> {{ licence.date_debut_essai|date:"d/m/Y" }}</li>
+                        <li><strong>Fin de l'essai :</strong> {{ licence.date_fin_essai|date:"d/m/Y" }}</li>
+                        {% if jours_depuis_expiration > 0 %}
+                        <li class="text-danger">
+                            <strong>Expiré depuis :</strong> {{ jours_depuis_expiration }} jour{{ jours_depuis_expiration|pluralize }}
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <!-- ============================================ -->
+                <!-- ✅ ZONE D'ACTIVATION (lien ajouté)            -->
+                <!-- ============================================ -->
+                <div class="zone-activation">
+                    <h5 class="mb-3">
+                        <i class="fas fa-key text-success me-2"></i>
+                        Vous avez déjà votre clé de licence ?
+                    </h5>
+                    <p class="text-muted small mb-3">
+                        Si vous avez reçu un code d'activation, cliquez ci-dessous pour débloquer immédiatement l'application.
+                    </p>
+
+                    <a href="{% url 'licence_activer' %}" class="btn-activer-licence mb-3">
+                        <i class="fas fa-unlock-alt"></i>
+                        Activer ma licence
+                    </a>
+
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-question-circle me-1"></i>
+                        Vous n'avez pas encore de clé ?
+                        <a href="#contact" class="text-decoration-none">Contactez-nous ci-dessous</a>.
+                    </p>
+                </div>
+
+                <!-- ============================================ -->
+                <!-- ZONE CONTACT (celle qui existait déjà)        -->
+                <!-- ============================================ -->
+                <div class="alert alert-success mt-4" id="contact">
+                    <h6 class="mb-3">
+                        <i class="fas fa-shopping-cart me-2"></i>
+                        Pour acheter une licence
+                    </h6>
+                    <p class="mb-2 small">Achetez la licence (paiement unique) :</p>
+                    <ul class="text-start small mb-3">
+                        <li>✅ Licence illimitée sur cette machine</li>
+                        <li>✅ Toutes les fonctionnalités</li>
+                        <li>✅ Pas de renouvellement à faire</li>
+                    </ul>
+                    <div class="text-start">
+                        <p class="mb-1">
+                            <strong>Contacts :</strong><br>
+                            📞 <a href="tel:+22373409173" class="text-decoration-none">+223 73 40 91 73 (WhatsApp)</a><br>
+                            📞 <a href="tel:+22389225412" class="text-decoration-none">+223 89 22 54 12</a><br>
+                            ✉️ <a href="mailto:yayadyd@gmail.com" class="text-decoration-none">
+                                Yaya DEMBELE, le propriétaire
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
+                <p class="text-muted small mb-0 mt-4">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Aucune donnée n'a été supprimée. Dès le paiement, l'accès sera rétabli.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

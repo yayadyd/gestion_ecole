@@ -1,0 +1,154 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} dépense
+{% endblock %}
+
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-receipt me-2"></i>
+        {% if form.instance.pk %}Modifier la dépense{% else %}Nouvelle dépense{% endif %}
+    </h4>
+    <a href="{% url 'fondamental:depense_list' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="row">
+                <!-- Catégorie -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.categorie.id_for_label }}" class="form-label required-field">
+                        {{ form.categorie.label }}
+                    </label>
+                    {{ form.categorie }}
+                    {% if form.categorie.errors %}<div class="text-danger small">{{ form.categorie.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Date -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.date_depense.id_for_label }}" class="form-label required-field">
+                        {{ form.date_depense.label }}
+                    </label>
+                    {{ form.date_depense }}
+                    {% if form.date_depense.errors %}<div class="text-danger small">{{ form.date_depense.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Libellé -->
+                <div class="col-md-12 mb-3">
+                    <label for="{{ form.libelle.id_for_label }}" class="form-label required-field">
+                        {{ form.libelle.label }}
+                    </label>
+                    {{ form.libelle }}
+                    {% if form.libelle.errors %}<div class="text-danger small">{{ form.libelle.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Montant -->
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.montant.id_for_label }}" class="form-label required-field">
+                        {{ form.montant.label }}
+                    </label>
+                    <div class="input-group">
+                        {{ form.montant }}
+                        <span class="input-group-text">FCFA</span>
+                    </div>
+                    {% if form.montant.errors %}<div class="text-danger small">{{ form.montant.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Bénéficiaire -->
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.beneficiaire.id_for_label }}" class="form-label">
+                        {{ form.beneficiaire.label }}
+                    </label>
+                    {{ form.beneficiaire }}
+                </div>
+
+                <!-- Mode paiement -->
+                <div class="col-md-4 mb-3">
+                    <label for="{{ form.mode_paiement.id_for_label }}" class="form-label required-field">
+                        {{ form.mode_paiement.label }}
+                    </label>
+                    {{ form.mode_paiement }}
+                </div>
+
+                <!-- N° pièce -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.numero_piece.id_for_label }}" class="form-label">
+                        {{ form.numero_piece.label }}
+                    </label>
+                    {{ form.numero_piece }}
+                </div>
+
+                <!-- Justificatif -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.justificatif.id_for_label }}" class="form-label">
+                        {{ form.justificatif.label }}
+                    </label>
+                    {{ form.justificatif }}
+                    {% if form.instance.justificatif %}
+                    <small class="text-muted d-block mt-1">
+                        <i class="fas fa-paperclip"></i>
+                        <a href="{{ form.instance.justificatif.url }}" target="_blank">Voir le justificatif actuel</a>
+                    </small>
+                    {% endif %}
+                </div>
+
+                <!-- Année scolaire -->
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.anneeScolaire.id_for_label }}" class="form-label required-field">
+                        {{ form.anneeScolaire.label }}
+                    </label>
+                    {{ form.anneeScolaire }}
+                    {% if form.anneeScolaire.errors %}<div class="text-danger small">{{ form.anneeScolaire.errors }}</div>{% endif %}
+                </div>
+
+                <!-- Observation -->
+                <div class="col-md-12 mb-3">
+                    <label for="{{ form.observation.id_for_label }}" class="form-label">
+                        {{ form.observation.label }}
+                    </label>
+                    {{ form.observation }}
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Les champs marqués d'un <span class="text-danger fw-bold">*</span> sont obligatoires
+                </small>
+                <div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                    <a href="{% url 'fondamental:depense_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.required-field::after {
+    content: " *";
+    color: #e74c3c;
+    font-weight: bold;
+}
+</style>
+
+{% endblock %}

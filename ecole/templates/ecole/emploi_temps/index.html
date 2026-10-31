@@ -1,0 +1,148 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Emplois du temps{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-calendar-alt me-2"></i>
+        Emplois du temps
+        {% if annee_encours %}<span class="badge bg-primary ms-2">{{ annee_encours }}</span>{% endif %}
+    </h4>
+    <div>
+        <a href="{% url 'fondamental:plage_horaire_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-clock"></i> Plages horaires
+        </a>
+        <a href="{% url 'fondamental:emploi_temps_tous_pdf' annee_encours %}" class="btn btn-danger">
+            <i class="fas fa-file-pdf"></i> Exporter tous les emplois du temps
+        </a>
+    </div>
+</div>
+
+<!-- Filtre année -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small">Année scolaire</label>
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    {% for a in annees_scolaires %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if annee_selectionnee and a.idAnneeScolaire == annee_selectionnee.idAnneeScolaire %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if not annee_encours %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Aucune année scolaire enregistrée. Créez-en une d'abord.
+</div>
+{% else %}
+
+<!-- Légende -->
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Vert</strong> = emploi du temps créé •
+    <strong>Gris</strong> = pas encore d'emploi du temps •
+    Cliquez sur une classe pour ouvrir la grille
+</div>
+
+<!-- 1er Cycle -->
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 1er Cycle
+            <span class="badge bg-light text-dark ms-2">{{ classes_1er|length }} classe{{ classes_1er|length|pluralize }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if classes_1er %}
+        <div class="row">
+            {% for item in classes_1er %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'fondamental:emploi_temps_gestion' item.classe.idClasse annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100 {% if item.emploi_temps %}border-success{% endif %}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x mb-2
+                                {% if item.emploi_temps %}text-success{% else %}text-muted{% endif %}"></i>
+                            <h5 class="mb-1">{{ item.classe.nomClasse }}</h5>
+                            {% if item.emploi_temps %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> {{ item.emploi_temps.nb_creneaux_remplis }} créneau{{ item.emploi_temps.nb_creneaux_remplis|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non créé</span>
+                            {% endif %}
+                            <div class="mt-2">
+                                <span class="btn btn-sm btn-outline-info">
+                                    <i class="fas fa-calendar-alt"></i> Ouvrir
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune classe du 1er cycle.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- 2e Cycle -->
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 2e Cycle
+            <span class="badge bg-light text-dark ms-2">{{ classes_2e|length }} classe{{ classes_2e|length|pluralize }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if classes_2e %}
+        <div class="row">
+            {% for item in classes_2e %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'fondamental:emploi_temps_gestion' item.classe.idClasse annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100 {% if item.emploi_temps %}border-success{% endif %}">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x mb-2
+                                {% if item.emploi_temps %}text-success{% else %}text-muted{% endif %}"></i>
+                            <h5 class="mb-1">{{ item.classe.nomClasse }}</h5>
+                            {% if item.emploi_temps %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-check"></i> {{ item.emploi_temps.nb_creneaux_remplis }} créneau{{ item.emploi_temps.nb_creneaux_remplis|pluralize }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-secondary">Non créé</span>
+                            {% endif %}
+                            <div class="mt-2">
+                                <span class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-calendar-alt"></i> Ouvrir
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune classe du 2e cycle.</p>
+        {% endif %}
+    </div>
+</div>
+
+{% endif %}
+
+{% endblock %}

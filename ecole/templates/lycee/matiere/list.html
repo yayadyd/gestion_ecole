@@ -1,0 +1,145 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Matières du Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="fas fa-book me-2"></i> Matières du Lycée</h4>
+    <a href="{% url 'lycee:matiere_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle matière
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-4">
+                <select name="domaine" class="form-select">
+                    <option value="">Tous les domaines</option>
+                    {% for code, libelle in domaines %}
+                    <option value="{{ code }}" {% if domaine_filtre == code %}selected{% endif %}>
+                        {{ libelle }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Rechercher..."
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau -->
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white">
+        <h6 class="mb-0">
+            <i class="fas fa-table me-1"></i>
+            {{ total }} matière{{ total|pluralize }}
+        </h6>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 70px;">Ordre</th>
+                    <th>Nom</th>
+                    {% if est_franco_arabe %}
+                        <th>Nom arabe</th>
+                    {% endif %}
+                    <th>Domaine</th>
+                    <th class="text-center">Obligatoire</th>
+                    <th class="text-center">Active</th>
+                    <th class="text-center" style="width: 130px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in matieres %}
+                <tr>
+                    <td class="text-center">
+                        <span class="badge bg-secondary">{{ m.ordre_affichage }}</span>
+                    </td>
+                    <td><strong>{{ m.nom }}</strong></td>
+                    {% if est_franco_arabe %}
+                        <td dir="rtl">{{ m.nom_arabe|default:"—" }}</td>
+                    {% endif %}
+                    <td>
+                        <span class="badge bg-info">{{ m.get_domaine_display }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if m.obligatoire %}
+                            <i class="fas fa-check-circle text-success"></i>
+                        {% else %}
+                            <i class="fas fa-times-circle text-muted"></i>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if m.active %}
+                            <span class="badge bg-success">Oui</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Non</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'lycee:matiere_update' m.pk %}"
+                               class="btn btn-warning" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'lycee:matiere_delete' m.pk %}"
+                               class="btn btn-danger" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="{% if est_franco_arabe %}7{% else %}6{% endif %}"
+                        class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p class="mb-2">Aucune matière enregistrée.</p>
+                        <a href="{% url 'lycee:matiere_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Créer la première matière
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if domaine_filtre %}&domaine={{ domaine_filtre }}{% endif %}">
+                    Précédent
+                </a>
+            </li>
+        {% endif %}
+        <li class="page-item active">
+            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if domaine_filtre %}&domaine={{ domaine_filtre }}{% endif %}">
+                    Suivant
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

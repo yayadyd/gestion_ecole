@@ -1,0 +1,611 @@
+{% extends 'lycee/base_lycee.html' %}
+{% load static %}
+
+{% block page_title %}Emploi du temps - {{ classe.nom }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+
+<style>
+    .emploi-table {
+        table-layout: fixed;
+        width: 100%;
+    }
+    .emploi-table th,
+    .emploi-table td {
+        text-align: center;
+        vertical-align: middle;
+        padding: 6px 4px;
+    }
+    .emploi-table th.col-heure {
+        width: 100px;
+        background: #8e44ad;
+        color: white;
+    }
+    .emploi-table th.col-jour {
+        background: #6c3483;
+        color: white;
+    }
+    .emploi-table .cell-plage {
+        background: #ecf0f1;
+        font-weight: bold;
+        font-size: 0.85rem;
+        color: #2c3e50;
+    }
+    .emploi-table .cell-plage.pause {
+        background: #f39c12;
+        color: white;
+    }
+    .emploi-cell {
+        cursor: pointer;
+        min-height: 50px;
+        transition: all 0.2s;
+        border-radius: 4px;
+    }
+    .emploi-cell.remplie {
+        background: #d4edda;
+        border: 2px solid #28a745;
+        color: #155724;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .emploi-cell.remplie:hover {
+        background: #c3e6cb;
+        transform: scale(1.03);
+    }
+    .emploi-cell.vide {
+        background: #f8f9fa;
+        border: 2px dashed #dee2e6;
+    }
+    .emploi-cell.vide:hover {
+        background: #e9ecef;
+        border-color: #8e44ad;
+        border-style: solid;
+    }
+    .emploi-cell.pause {
+        background: #fff3cd;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    .cell-salle {
+        font-size: 0.7rem;
+        color: #6c757d;
+        margin-top: 2px;
+    }
+    .modal-cell-info {
+        background: #f8f9fa;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block lycee_content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-calendar-alt me-2"></i>
+        Emploi du temps - <strong>{{ classe.nom }}</strong>
+        <span class="badge bg-primary ms-2">{{ annee_scolaire }}</span>
+        <span class="badge bg-secondary ms-1">
+            {{ classe.get_niveau_display }}
+            {% if classe.serie %} — {{ classe.get_serie_display }}{% endif %}
+        </span>
+        {% if emploi_temps.reconduit_depuis %}
+        <span class="badge bg-success ms-1"
+              title="Reconduit depuis {{ emploi_temps.reconduit_depuis.annee_scolaire.anneeScolaire }}">
+            <i class="fas fa-copy"></i> Reconduit
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:emploi_temps_lycee_index' %}?annee={{ annee_scolaire }}"
+           class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <a href="{% url 'lycee:emploi_temps_lycee_pdf' classe.id_classe annee_scolaire %}"
+           class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Exporter PDF
+        </a>
+        {% if emploi_precedent %}
+        <button class="btn btn-warning btn-sm" id="btnReconduire"
+                data-annee-precedente="{{ annee_precedente.anneeScolaire }}">
+            <i class="fas fa-copy"></i> Reconduire depuis {{ annee_precedente.anneeScolaire }}
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Info -->
+<div class="alert alert-info">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Cliquez sur une case</strong> pour affecter une matière.
+            <strong>Cliquez sur une case remplie</strong> pour modifier ou vider.
+        </div>
+        <div>
+            <span class="badge bg-success">
+                <i class="fas fa-check"></i>
+                {{ nb_creneaux_remplis }} créneau{{ nb_creneaux_remplis|pluralize }} rempli{{ nb_creneaux_remplis|pluralize }}
+            </span>
+        </div>
+    </div>
+</div>
+
+<!-- Grille -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-bordered mb-0 emploi-table">
+                <thead>
+                    <tr>
+                        <th class="col-heure">Heure</th>
+                        {% for jour_num, jour_nom in jours %}
+                        <th class="col-jour">{{ jour_nom }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ligne in grille %}
+                    <tr>
+                        <td class="cell-plage {% if ligne.plage.est_pause %}pause{% endif %}">
+                            <div>{{ ligne.plage.heure_debut|time:"H:i" }}</div>
+                            <div class="small">↓</div>
+                            <div>{{ ligne.plage.heure_fin|time:"H:i" }}</div>
+                            {% if ligne.plage.libelle %}
+                            <div class="small fst-italic mt-1">{{ ligne.plage.libelle }}</div>
+                            {% endif %}
+                        </td>
+                        {% for case in ligne.cases %}
+                        <td>
+                            {% if ligne.plage.est_pause %}
+                            <div class="emploi-cell pause d-flex align-items-center justify-content-center">
+                                <i class="fas fa-coffee"></i>
+                            </div>
+                            {% else %}
+                            <!-- ✅ FIX: escapejs sur tous les attributs data-* contenant du texte libre -->
+                            <div class="emploi-cell {% if case.creneau and case.creneau.matiere %}remplie{% else %}vide{% endif %} d-flex flex-column align-items-center justify-content-center"
+                                 data-jour="{{ case.jour }}"
+                                 data-plage-id="{{ ligne.plage.pk }}"
+                                 data-creneau-id="{% if case.creneau %}{{ case.creneau.pk }}{% endif %}"
+                                 data-matiere-id="{% if case.creneau and case.creneau.matiere %}{{ case.creneau.matiere.pk }}{% endif %}"
+                                 data-matiere-nom="{% if case.creneau and case.creneau.matiere %}{{ case.creneau.matiere.nom|escapejs }}{% endif %}"
+                                 data-salle="{% if case.creneau %}{{ case.creneau.salle|default:''|escapejs }}{% endif %}">
+                                {% if case.creneau and case.creneau.matiere %}
+                                <div>{{ case.creneau.matiere.nom }}</div>
+                                {% if case.creneau.salle %}
+                                <div class="cell-salle">
+                                    <i class="fas fa-door-open"></i> {{ case.creneau.salle }}
+                                </div>
+                                {% endif %}
+                                {% else %}
+                                <i class="fas fa-plus text-muted"></i>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Légende -->
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <strong>Légende :</strong>
+                <span class="badge bg-success ms-2">
+                    <i class="fas fa-check"></i> Créneau rempli
+                </span>
+                <span class="badge bg-secondary ms-2">
+                    <i class="fas fa-plus"></i> Case vide (cliquer)
+                </span>
+                <span class="badge bg-warning text-dark ms-2">
+                    <i class="fas fa-coffee"></i> Pause
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL : Affecter / Modifier une matière -->
+<!-- ============================================================ -->
+<div class="modal fade" id="modalCreneau" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-edit me-2"></i> Affecter une matière
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-cell-info" id="modalCellInfo"></div>
+                <form id="formCreneau">
+                    <input type="hidden" id="inputJour">
+                    <input type="hidden" id="inputPlageId">
+                    <div class="mb-3">
+                        <label class="form-label">Matière <span class="text-danger">*</span></label>
+                        <select id="inputMatiere" class="form-select">
+                            <option value="">-- Choisir une matière --</option>
+                            {% for matiere in matieres %}
+                            <option value="{{ matiere.id_matiere }}">{{ matiere.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Salle <small class="text-muted">(optionnel)</small></label>
+                        <input type="text" id="inputSalle" class="form-control" placeholder="Ex: Salle 1">
+                    </div>
+                </form>
+                <div id="modalError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <button type="button" class="btn btn-danger d-none" id="btnVider">
+                    <i class="fas fa-eraser"></i> Vider la case
+                </button>
+                <div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-primary" id="btnEnregistrer">
+                        <i class="fas fa-save"></i> Enregistrer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- MODAL : Confirmation de reconduction -->
+<!-- ============================================================ -->
+{% if emploi_precedent %}
+<div class="modal fade" id="modalReconduire" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title">
+                    <i class="fas fa-copy me-2"></i> Reconduire l'emploi du temps
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>
+                    Voulez-vous copier l'emploi du temps de
+                    <strong>{{ annee_precedente.anneeScolaire }}</strong>
+                    vers <strong>{{ annee_scolaire }}</strong> ?
+                </p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>{{ emploi_precedent.nb_creneaux_remplis }}</strong>
+                    créneau(x) seront copiés.
+                </div>
+                {% if nb_creneaux_remplis > 0 %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>Attention :</strong> cet emploi du temps contient déjà
+                    <strong>{{ nb_creneaux_remplis }}</strong> créneau(x) rempli(s).
+                    <div class="form-check mt-2">
+                        <input type="checkbox" id="checkRemplacer" class="form-check-input">
+                        <label class="form-check-label" for="checkRemplacer">
+                            Remplacer les créneaux existants
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+                <div id="modalReconduireError" class="alert alert-danger d-none"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                <button type="button" class="btn btn-warning" id="btnConfirmerReconduire">
+                    <i class="fas fa-copy"></i> Reconduire
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% csrf_token %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const EMPLOI_TEMPS_ID = {{ emploi_temps.id_emploi_temps }};
+    const URL_ENREGISTRER = "{% url 'lycee:emploi_temps_lycee_enregistrer_creneau' %}";
+    const URL_RECONDURE = "{% url 'lycee:emploi_temps_lycee_reconduire' classe.id_classe annee_scolaire %}";
+    const ANNEE_PRECEDENTE_ID = {% if annee_precedente %}{{ annee_precedente.idAnneeScolaire }}{% else %}null{% endif %};
+
+    let cellActive = null;
+    let modalInstance = null;
+    let modalReconduireInstance = null;
+
+    if (typeof bootstrap === 'undefined') {
+        console.error("❌ Bootstrap 5 n'est pas chargé !");
+        return;
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    function getCsrfToken() {
+        const input = document.querySelector('[name=csrfmiddlewaretoken]');
+        return (input && input.value) || getCookie('csrftoken');
+    }
+
+    function afficherErreur(message) {
+        const div = document.getElementById('modalError');
+        if (!div) return;
+        div.textContent = message;
+        div.classList.remove('d-none');
+    }
+
+    const cells = document.querySelectorAll('.emploi-cell:not(.pause)');
+    cells.forEach(function (cell) {
+        cell.addEventListener('click', function () {
+            ouvrirModalCell(this);
+        });
+    });
+
+    function ouvrirModalCell(cell) {
+        cellActive = cell;
+        const jour = cell.dataset.jour;
+        const plageId = cell.dataset.plageId;
+        const creneauId = cell.dataset.creneauId;
+        const matiereId = cell.dataset.matiereId;
+        const salle = cell.dataset.salle;
+
+        const jours = {1: 'Lundi', 2: 'Mardi', 3: 'Mercredi', 4: 'Jeudi', 5: 'Vendredi', 6: 'Samedi'};
+
+        let plageText = '';
+        const row = cell.closest('tr');
+        if (row) {
+            const plageCell = row.querySelector('.cell-plage');
+            if (plageCell) plageText = plageCell.textContent.trim();
+        }
+
+        document.getElementById('inputJour').value = jour;
+        document.getElementById('inputPlageId').value = plageId;
+        document.getElementById('inputMatiere').value = matiereId || '';
+        document.getElementById('inputSalle').value = salle || '';
+
+        const modalError = document.getElementById('modalError');
+        if (modalError) {
+            modalError.classList.add('d-none');
+            modalError.textContent = '';
+        }
+
+        const infoDiv = document.getElementById('modalCellInfo');
+        if (infoDiv) {
+            infoDiv.innerHTML = `<strong><i class="fas fa-calendar-day me-1"></i> ${jours[jour]}</strong><br>
+                <small class="text-muted">${plageText}</small>`;
+        }
+
+        const btnVider = document.getElementById('btnVider');
+        if (btnVider) {
+            if (creneauId && matiereId) {
+                btnVider.classList.remove('d-none');
+            } else {
+                btnVider.classList.add('d-none');
+            }
+        }
+
+        modalInstance = new bootstrap.Modal(document.getElementById('modalCreneau'));
+        modalInstance.show();
+    }
+
+    function viderCaseVisuellement(cell) {
+        if (!cell) return;
+        cell.classList.remove('remplie');
+        cell.classList.add('vide');
+        cell.innerHTML = '<i class="fas fa-plus text-muted"></i>';
+        cell.dataset.creneauId = '';
+        cell.dataset.matiereId = '';
+        cell.dataset.matiereNom = '';
+        cell.dataset.salle = '';
+    }
+
+    const btnEnregistrer = document.getElementById('btnEnregistrer');
+    if (btnEnregistrer) {
+        btnEnregistrer.addEventListener('click', function () {
+            const matiereId = document.getElementById('inputMatiere').value;
+            const salle = document.getElementById('inputSalle').value;
+            const jour = document.getElementById('inputJour').value;
+            const plageId = document.getElementById('inputPlageId').value;
+
+            if (!matiereId) {
+                afficherErreur("Veuillez choisir une matière.");
+                return;
+            }
+
+            this.disabled = true;
+            const original = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enregistrement...';
+
+            const payload = {
+                emploi_temps_id: EMPLOI_TEMPS_ID,
+                jour: parseInt(jour),
+                plage_id: parseInt(plageId),
+                matiere_id: parseInt(matiereId),
+                salle: salle,
+            };
+
+            fetch(URL_ENREGISTRER, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            })
+                .then(r => r.json())
+                .then(response => {
+                    this.disabled = false;
+                    this.innerHTML = original;
+
+                    if (response.success) {
+                        mettreAJourCellDepuisReponse(response, payload);
+                        if (modalInstance) modalInstance.hide();
+                    } else {
+                        afficherErreur(response.error || 'Erreur inconnue');
+                    }
+                })
+                .catch(err => {
+                    this.disabled = false;
+                    this.innerHTML = original;
+                    afficherErreur('Erreur réseau : ' + err.message);
+                });
+        });
+    }
+
+    const btnVider = document.getElementById('btnVider');
+    if (btnVider) {
+        btnVider.addEventListener('click', function () {
+            if (!confirm("Voulez-vous vraiment vider cette case ?")) return;
+
+            const jour = parseInt(document.getElementById('inputJour').value);
+            const plageId = parseInt(document.getElementById('inputPlageId').value);
+
+            const original = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Suppression...';
+
+            const payload = {
+                emploi_temps_id: EMPLOI_TEMPS_ID,
+                jour: jour,
+                plage_id: plageId,
+                matiere_id: null,
+                salle: null,
+            };
+
+            fetch(URL_ENREGISTRER, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify(payload),
+            })
+                .then(r => r.json())
+                .then(response => {
+                    this.disabled = false;
+                    this.innerHTML = original;
+
+                    if (response.success) {
+                        viderCaseVisuellement(cellActive);
+                        if (modalInstance) modalInstance.hide();
+                    } else {
+                        alert('Erreur : ' + (response.error || 'inconnue'));
+                    }
+                })
+                .catch(err => {
+                    this.disabled = false;
+                    this.innerHTML = original;
+                    alert('Erreur réseau : ' + err.message);
+                });
+        });
+    }
+
+    function mettreAJourCellDepuisReponse(response, payload) {
+        if (!cellActive) return;
+
+        cellActive.classList.add('remplie');
+        cellActive.classList.remove('vide');
+        const matiereNom = response.creneau.matiere_nom;
+        const salle = response.creneau.salle;
+
+        // ✅ FIX: construire le HTML de manière sûre (createElement au lieu d'innerHTML)
+        cellActive.innerHTML = '';
+
+        const divMatiere = document.createElement('div');
+        divMatiere.textContent = matiereNom;
+        cellActive.appendChild(divMatiere);
+
+        if (salle) {
+            const divSalle = document.createElement('div');
+            divSalle.className = 'cell-salle';
+            const icon = document.createElement('i');
+            icon.className = 'fas fa-door-open';
+            divSalle.appendChild(icon);
+            divSalle.appendChild(document.createTextNode(' ' + salle));
+            cellActive.appendChild(divSalle);
+        }
+
+        cellActive.dataset.creneauId = response.creneau.id;
+        cellActive.dataset.matiereId = payload.matiere_id;
+        cellActive.dataset.matiereNom = matiereNom;
+        cellActive.dataset.salle = salle || '';
+    }
+
+    const btnReconduire = document.getElementById('btnReconduire');
+    if (btnReconduire) {
+        btnReconduire.addEventListener('click', function () {
+            modalReconduireInstance = new bootstrap.Modal(document.getElementById('modalReconduire'));
+            modalReconduireInstance.show();
+        });
+    }
+
+    const btnConfirmerReconduire = document.getElementById('btnConfirmerReconduire');
+    if (btnConfirmerReconduire) {
+        btnConfirmerReconduire.addEventListener('click', function () {
+            const remplacer = document.getElementById('checkRemplacer')?.checked || false;
+
+            this.disabled = true;
+            const original = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Copie en cours...';
+
+            fetch(URL_RECONDURE, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+                body: JSON.stringify({
+                    annee_precedente_id: ANNEE_PRECEDENTE_ID,
+                    remplacer: remplacer,
+                }),
+            })
+                .then(r => r.json())
+                .then(response => {
+                    if (response.success) {
+                        window.location.reload();
+                    } else {
+                        const errDiv = document.getElementById('modalReconduireError');
+                        errDiv.textContent = response.error;
+                        errDiv.classList.remove('d-none');
+                        this.disabled = false;
+                        this.innerHTML = original;
+                    }
+                })
+                .catch(err => {
+                    const errDiv = document.getElementById('modalReconduireError');
+                    errDiv.textContent = 'Erreur réseau : ' + err.message;
+                    errDiv.classList.remove('d-none');
+                    this.disabled = false;
+                    this.innerHTML = original;
+                });
+        });
+    }
+});
+</script>
+
+{% endblock %}

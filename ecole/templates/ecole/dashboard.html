@@ -1,0 +1,271 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Tableau de bord{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-3">
+
+    <!-- ============================================================ -->
+    <!-- EN-TÊTE : Année scolaire sélectionnée                         -->
+    <!-- ============================================================ -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+        <h4 class="mb-0">
+            <i class="fas fa-tachometer-alt me-2"></i>
+            Tableau de bord
+            {% if annee_encours %}
+                <small class="text-muted">— Année scolaire {{ annee_encours }}</small>
+            {% endif %}
+        </h4>
+        <a href="{% url 'ouvrir_dossier_donnees' %}" class="btn btn-outline-info">
+            <i class="fas fa-folder-open"></i> Ouvrir le dossier des données
+        </a>
+        <form method="get" class="d-flex gap-2">
+            <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for a in annees_scolaires %}
+                    <option value="{{ a.anneeScolaire }}"
+                            {% if a == annee_selectionnee %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INFO MODES DE PAIEMENT ACTIFS                                 -->
+    <!-- ============================================================ -->
+    {% if ecole %}
+    <div class="alert alert-light border d-flex flex-wrap gap-3 align-items-center mb-3">
+        <div>
+            <i class="fas fa-file-invoice text-primary me-1"></i>
+            <strong>Frais d'inscription :</strong>
+            <span class="badge bg-primary">{{ libelle_mode_inscription }}</span>
+        </div>
+        <div>
+            <i class="fas fa-graduation-cap text-success me-1"></i>
+            <strong>Scolarité :</strong>
+            <span class="badge bg-success">{{ libelle_mode_scolarite }}</span>
+            {% if mode_frais_scolarite == 'tranches' %}
+                <span class="badge bg-secondary">{{ nombre_tranches }} tranches</span>
+            {% endif %}
+        </div>
+        <a href="{% url 'parametres_ecole' %}" class="btn btn-sm btn-outline-secondary ms-auto">
+            <i class="fas fa-cog"></i> Modifier
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- ============================================================ -->
+    <!-- CARTES STATISTIQUES                                           -->
+    <!-- ============================================================ -->
+    <div class="row g-3 mb-4">
+
+        <!-- Élèves -->
+        <div class="col-md-3">
+            <div class="card bg-primary text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small mb-1">Élèves inscrits</h6>
+                            <h2 class="mb-0">{{ stats_eleves.total }}</h2>
+                            <small>
+                                1er cycle : {{ stats_eleves.1er }} |
+                                2e cycle : {{ stats_eleves.2e }}
+                            </small>
+                        </div>
+                        <i class="fas fa-users fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Classes -->
+        <div class="col-md-3">
+            <div class="card bg-success text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small mb-1">Classes actives</h6>
+                            <h2 class="mb-0">{{ stats_classes.total }}</h2>
+                            <small>
+                                1er : {{ stats_classes.1er }} |
+                                2e : {{ stats_classes.2e }}
+                            </small>
+                        </div>
+                        <i class="fas fa-chalkboard fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inscriptions -->
+        <div class="col-md-3">
+            <div class="card bg-info text-white shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small mb-1">Inscriptions</h6>
+                            <h2 class="mb-0">{{ total_inscriptions }}</h2>
+                            <small>Pour l'année sélectionnée</small>
+                        </div>
+                        <i class="fas fa-user-plus fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Paiements (si autorisé) -->
+        {% if peut_voir_paiements_globaux %}
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-uppercase small mb-1">Recettes</h6>
+                            <h2 class="mb-0">{{ stats_paiements.total|floatformat:0 }}</h2>
+                            <small>FCFA encaissés</small>
+                        </div>
+                        <i class="fas fa-money-bill-wave fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- RACCOURCIS RAPIDES                                            -->
+    <!-- ============================================================ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light">
+            <h6 class="mb-0"><i class="fas fa-bolt me-1"></i> Actions rapides</h6>
+        </div>
+        <div class="card-body">
+            <div class="row g-2">
+                <div class="col-md-3">
+                    <a href="{% url 'fondamental:inscription_create' %}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-user-plus"></i> Nouvelle inscription
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'fondamental:paiement_create' %}" class="btn btn-outline-success w-100">
+                        <i class="fas fa-money-bill-wave"></i> Nouveau paiement
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'fondamental:notes_choix' %}" class="btn btn-outline-info w-100">
+                        <i class="fas fa-edit"></i> Saisie des notes
+                    </a>
+                </div>
+                <div class="col-md-3">
+                    <a href="{% url 'fondamental:bulletins_choix' %}" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-file-alt"></i> Bulletins
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- INSCRIPTIONS RÉCENTES                                         -->
+    <!-- ============================================================ -->
+    <div class="row g-3">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between">
+                    <h6 class="mb-0"><i class="fas fa-clock me-1"></i> Inscriptions récentes</h6>
+                    <a href="{% url 'fondamental:inscription_list' %}" class="btn btn-sm btn-outline-secondary">
+                        Voir tout
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if inscriptions_recentes %}
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Élève</th>
+                                    <th>Classe</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for ins in inscriptions_recentes %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'fondamental:eleve_detail' ins.eleve.id %}">
+                                            {{ ins.eleve.nomEleve }} {{ ins.eleve.prenomEleve }}
+                                        </a>
+                                        <br>
+                                        <small class="text-muted">{{ ins.eleve.matricule }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">
+                                            {{ ins.classe.nomClasse }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-muted text-center">
+                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                            Aucune inscription récente
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Derniers paiements -->
+        {% if peut_voir_paiements_globaux %}
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-light d-flex justify-content-between">
+                    <h6 class="mb-0"><i class="fas fa-money-bill-wave me-1"></i> Derniers paiements</h6>
+                    <a href="{% url 'fondamental:paiement_list' %}" class="btn btn-sm btn-outline-secondary">
+                        Voir tout
+                    </a>
+                </div>
+                <div class="card-body p-0">
+                    {% if paiements_recents %}
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Élève</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Montant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for p in paiements_recents %}
+                                <tr>
+                                    <td>{{ p.inscription.eleve.nomEleve }} {{ p.inscription.eleve.prenomEleve }}</td>
+                                    <td>
+                                        {% if p.est_inscription %}
+                                            <span class="badge bg-primary">Inscription</span>
+                                        {% else %}
+                                            <span class="badge bg-success">
+                                                {% if p.mois %}{{ p.get_mois_display }}{% else %}Scolarité{% endif %}
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end">{{ p.montant|floatformat:0 }} FCFA</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <div class="p-3 text-muted text-center">
+                            <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                            Aucun paiement récent
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+{% endblock %}

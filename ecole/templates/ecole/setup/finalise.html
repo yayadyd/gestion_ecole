@@ -1,0 +1,19 @@
+{% extends 'ecole/setup/base_setup.html' %}
+
+{% block title %}Configuration terminée{% endblock %}
+
+{% block content %}
+<div class="text-center py-4">
+    <div class="mb-4" style="font-size: 4rem; color: #27ae60;">
+        <i class="fas fa-check-circle"></i>
+    </div>
+    <h3 class="mb-3">Configuration terminée !</h3>
+    <p class="text-muted mb-4">
+        Votre application est prête. Connectez-vous avec le compte que vous venez de créer.
+    </p>
+    <a href="{% url 'login' %}" class="btn btn-primary btn-lg">
+        <i class="fas fa-sign-in-alt me-2"></i> Se connecter
+    </a>
+</div>
+{% endblock %}
+EOF

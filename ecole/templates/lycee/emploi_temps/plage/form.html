@@ -1,0 +1,91 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} plage horaire{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-clock me-2"></i>
+        {% if form.instance.pk %}
+            Modifier la plage horaire
+        {% else %}
+            Nouvelle plage horaire
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:plage_lycee_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Heure de début <span class="text-danger">*</span>
+                            </label>
+                            {{ form.heure_debut }}
+                            {% if form.heure_debut.errors %}
+                                <div class="text-danger small">{{ form.heure_debut.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Heure de fin <span class="text-danger">*</span>
+                            </label>
+                            {{ form.heure_fin }}
+                            {% if form.heure_fin.errors %}
+                                <div class="text-danger small">{{ form.heure_fin.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ordre d'affichage</label>
+                            {{ form.ordre }}
+                            <small class="text-muted d-block">
+                                Plus petit = affiché en premier.
+                            </small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Libellé</label>
+                            {{ form.libelle }}
+                            <small class="text-muted d-block">
+                                Ex : Récréation, Pause déjeuner.
+                            </small>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                {{ form.est_pause }}
+                                <label class="form-check-label" for="{{ form.est_pause.id_for_label }}">
+                                    C'est une <strong>pause</strong> (pas de matière possible)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'lycee:plage_lycee_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

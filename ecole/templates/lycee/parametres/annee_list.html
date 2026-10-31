@@ -1,0 +1,76 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Années scolaires{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-calendar me-2"></i>
+        Années scolaires
+        <span class="badge bg-primary ms-2">{{ annees|length }}</span>
+    </h4>
+    {% if perms.ecole.change_anneescolaire %}
+    <a href="{% url 'lycee:annee_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle année
+    </a>
+    {% endif %}
+</div>
+
+<div class="alert alert-info small">
+    <i class="fas fa-info-circle me-1"></i>
+    <strong>Note :</strong> Les années scolaires sont <strong>partagées</strong>
+    entre le fondamental et le lycée.
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th>Année scolaire</th>
+                    <th>Date de début</th>
+                    <th>Date de fin</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for annee in annees %}
+                <tr>
+                    <td>
+                        <strong>{{ annee.anneeScolaire }}</strong>
+                        {% if annee.anneeScolaire == annee_encours %}
+                            <span class="badge bg-success ms-2">En cours</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ annee.date_debut|date:"d/m/Y"|default:"—" }}</td>
+                    <td>{{ annee.date_fin|date:"d/m/Y"|default:"—" }}</td>
+                    <td class="text-center">
+                         {% if perms.ecole.change_anneescolaire %}
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'lycee:annee_update' annee.pk %}"
+                               class="btn btn-warning" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'lycee:annee_delete' annee.pk %}"
+                               class="btn btn-danger" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Aucune année scolaire enregistrée.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

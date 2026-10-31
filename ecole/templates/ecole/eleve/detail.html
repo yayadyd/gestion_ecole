@@ -1,0 +1,568 @@
+{% extends 'ecole/base.html' %}
+{% load static %}
+{% block page_title %}Détails de l'élève - {{ eleve }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-user-graduate me-2"></i>
+        Détails de l'élève
+        <small class="text-muted">{{ eleve.nomEleve }} {{ eleve.prenomEleve }}</small>
+    </h4>
+    <div>
+        <a href="{% url 'fondamental:eleve_list' %}" class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+        <a href="{% url 'fondamental:dossier_scolaire_eleve' eleve.id %}" class="btn btn-outline-primary">
+            <i class="fas fa-folder-open"></i> Dossier scolaire
+        </a>
+        
+        <button onclick="window.print()" class="btn btn-secondary btn-sm">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonne gauche -->
+    <div class="col-md-4">
+        <!-- Informations personnelles -->
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-user me-2"></i>
+                    Informations personnelles
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-3">
+                    {% if eleve.photo %}
+                        <img src="{{ eleve.photo.url }}" alt="Photo de {{ eleve }}"
+                             class="rounded-circle img-thumbnail" style="width:120px; height:120px; object-fit:cover;">
+                    {% else %}
+                        <i class="fas fa-user-circle fa-5x text-primary"></i>
+                    {% endif %}
+                </div>
+                <table class="table table-sm">
+                    <tr>
+                        <th><i class="fas fa-id-card me-1"></i> Matricule :</th>
+                        <td><span class="badge bg-secondary">{{ eleve.matricule }}</span></td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-user me-1"></i> Nom :</th>
+                        <td>{{ eleve.nomEleve }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-user me-1"></i> Prénom :</th>
+                        <td>{{ eleve.prenomEleve }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-venus-mars me-1"></i> Sexe :</th>
+                        <td>{{ eleve.get_sexe_display|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-calendar-alt me-1"></i> Date naissance :</th>
+                        <td>{{ eleve.dateNaiss|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-map-marker-alt me-1"></i> Lieu naissance :</th>
+                        <td>{{ eleve.lieuNaiss }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-clock me-1"></i> Âge :</th>
+                        <td>{{ eleve.get_age }} ans</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Filiation -->
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    Filiation
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th><i class="fas fa-male me-1"></i> Père :</th>
+                        <td>{{ eleve.pere|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th><i class="fas fa-female me-1"></i> Mère :</th>
+                        <td>{{ eleve.mere|default:"Non renseigné" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Acte de naissance -->
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-contract me-2"></i>
+                    Acte de naissance
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th>N° acte :</th>
+                        <td>{{ eleve.numero_acte_naissance|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date délivrance :</th>
+                        <td>{{ eleve.date_delivrance_acte|date:"d/m/Y"|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Contact tuteur -->
+        <div class="card mt-3">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-phone me-2"></i>
+                    Tuteur
+                </h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th>Contact :</th>
+                        <td>{{ eleve.contactTuteur|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Adresse :</th>
+                        <td>{{ eleve.adresseTuteur|default:"-"|linebreaksbr }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
+        <!-- Statistiques rapides -->
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    Statistiques
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6>Inscriptions</h6>
+                        <h3 class="text-primary">{{ inscriptions|length }}</h3>
+                    </div>
+                    <div class="col-6">
+                        <h6>Moyenne générale</h6>
+                        <h3 class="{% if moyenne_generale >= 12 %}text-success{% elif moyenne_generale >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ moyenne_generale|default:"-" }}
+                        </h3>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h6>Meilleure note</h6>
+                        <h3 class="text-success">{{ meilleure_note|default:"-" }}</h3>
+                    </div>
+                    <div class="col-6">
+                        <h6>Total paiements</h6>
+                        <h3 class="text-info">{{ total_paiements|default:0 }} FCFA</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Colonne droite -->
+    <div class="col-md-8">
+
+        <!-- Parcours scolaire / scolarité -->
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-route me-2"></i>
+                    Parcours scolaire
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <th>Scolarité 1er cycle :</th>
+                                <td><span class="badge bg-secondary">{{ eleve.scolarite_1er_cycle }} an(s)</span></td>
+                            </tr>
+                            <tr>
+                                <th>Scolarité 2e cycle :</th>
+                                <td><span class="badge bg-secondary">{{ eleve.scolarite_2e_cycle }} an(s)</span></td>
+                            </tr>
+                            <tr>
+                                <th>Scolarité totale :</th>
+                                <td><span class="badge bg-primary">{{ eleve.scolarite_totale }} an(s)</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-sm mb-0">
+                            <tr>
+                                <th>Année recrutement :</th>
+                                <td>{{ eleve.annee_recrutement|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>École recrutement :</th>
+                                <td>{{ eleve.ecole_recrutement|default:"-" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Entrée en 7ème :</th>
+                                <td>{{ eleve.annee_entree_7eme|default:"-" }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+                <hr>
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th style="width:30%">École fin 1er cycle :</th>
+                        <td>{{ eleve.ecole_fin_1er_cycle|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <th>École année précédente :</th>
+                        <td>{{ eleve.ecole_an_dernier|default:"-" }}</td>
+                    </tr>
+                </table>
+
+                <!-- Redoublements -->
+                {% if eleve.redoublement_1 or eleve.redoublement_2 or eleve.redoublement_3 %}
+                <hr>
+                <h6 class="text-muted">
+                    <i class="fas fa-redo me-1"></i> Redoublements détectés :
+                </h6>
+                <div class="d-flex flex-wrap gap-2">
+                    {% if eleve.redoublement_1 %}
+                        <span class="badge bg-danger">{{ eleve.redoublement_1 }}</span>
+                    {% endif %}
+                    {% if eleve.redoublement_2 %}
+                        <span class="badge bg-danger">{{ eleve.redoublement_2 }}</span>
+                    {% endif %}
+                    {% if eleve.redoublement_3 %}
+                        <span class="badge bg-danger">{{ eleve.redoublement_3 }}</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Parcours par année (inscriptions) -->
+        <div class="card mt-3">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-pen-fancy me-2"></i>
+                    Inscriptions et résultats
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Année scolaire</th>
+                                <th>Classe</th>
+                                <th>Carte scolaire</th>
+                                <th>Moyenne</th>
+                                <th>Rang</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inscription in inscriptions %}
+                            <tr>
+                                <td>
+                                    <span class="badge bg-primary">{{ inscription.anneeScolaire }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ inscription.classe.nomClasse }}</span>
+                                </td>
+                                <td>
+                                    <!-- ✅ LE BOUTON DOIT ÊTRE ICI, DANS LA BOUCLE -->
+                                    <a href="{% url 'fondamental:carte_scolaire_preview' inscription.idInscription %}" 
+                                    class="btn btn-primary btn-sm">
+                                        <i class="fas fa-id-card"></i> Voir la carte
+                                    </a>
+                                </td>
+                                <td>
+                                    {% with resultat=inscription.resultattrimestre_set.first %}
+                                        {% if resultat %}
+                                            <strong class="{% if resultat.moyenne_generale >= 12 %}text-success{% elif resultat.moyenne_generale >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                                {{ resultat.moyenne_generale }}/20
+                                            </strong>
+                                        {% else %}
+                                            <span class="text-muted">Non calculé</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with resultat=inscription.resultattrimestre_set.first %}
+                                        {% if resultat and resultat.rang %}
+                                            <span class="badge {% if resultat.rang <= 3 %}bg-success{% elif resultat.rang <= 10 %}bg-primary{% else %}bg-secondary{% endif %}">
+                                                {{ resultat.rang }}ème
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">-</span>
+                                        {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        {% if inscription.classe.cycle == '1er' %}
+                                            <a href="{% url 'fondamental:cycle1_bulletins_eleve_annee' eleve.id %}"
+                                            class="btn btn-info"
+                                            title="Voir les bulletins mensuels">
+                                                <i class="fas fa-file-alt"></i>
+                                            </a>
+                                            {% else %}
+                                            <a href="{% url 'fondamental:cycle2_bulletin_eleve' eleve.id inscription.anneeScolaire.anneeScolaire 'Premier trimestre' %}"
+                                            class="btn btn-info"
+                                            title="Voir le bulletin">
+                                                <i class="fas fa-file-alt"></i>
+                                            </a>
+                                            {% endif %}
+                                        <a href="{% url 'fondamental:paiement_eleve_annee' eleve.id inscription.anneeScolaire.anneeScolaire %}"
+                                           class="btn btn-secondary"
+                                           title="Voir les paiements">
+                                            <i class="fas fa-money-bill-wave"></i>
+                                        </a>
+                                        <a href="{% url 'fondamental:inscription_update' inscription.idInscription %}"
+                                           class="btn btn-warning"
+                                           title="Modifier l'inscription">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Aucune inscription enregistrée
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bulletins -->
+        <div class="card mt-3">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-alt me-2"></i>
+                    Bulletins
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="{% url 'fondamental:cycle2_bulletins_eleve_annee' eleve.id %}"
+                            class="btn btn-primary w-100 py-3">
+                            <i class="fas fa-history fa-2x d-block mb-2"></i>
+                            <span class="fw-bold">Historique complet</span>
+                            <br>
+                            <small>Toutes les années et trimestres</small>
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <div class="dropdown w-100">
+                            <button class="btn btn-success dropdown-toggle w-100 py-3" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-file-alt fa-2x d-block mb-2"></i>
+                                <span class="fw-bold">Bulletin par trimestre</span>
+                                <br>
+                                <small>Sélectionner un trimestre</small>
+                            </button>
+                            <ul class="dropdown-menu w-100">
+                                <li><h6 class="dropdown-header text-center">Choisir un trimestre</h6></li>
+                                {% for key, value in trimestres.items %}
+                                <li>
+                                    <a class="dropdown-item text-center py-2"
+                                        href="{% url 'fondamental:cycle2_bulletin_eleve' eleve.id annee_encours key %}">
+                                        <i class="fas fa-file-alt me-2"></i>
+                                        {{ value }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                {% if inscriptions %}
+                <div class="mt-3">
+                    <hr>
+                    <h6 class="text-muted">Années disponibles :</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for inscription in inscriptions %}
+                        {% if inscription.classe.cycle == '1er' %}
+                            <a href="{% url 'fondamental:cycle1_bulletins_eleve_annee' eleve.pk %}"
+                            class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                {{ inscription.anneeScolaire.anneeScolaire }}
+                            </a>
+                            {% else %}
+                            <a href="{% url 'fondamental:cycle2_bulletin_eleve' eleve.pk inscription.anneeScolaire.anneeScolaire 'Premier trimestre' %}"
+                            class="btn btn-outline-secondary btn-sm">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                {{ inscription.anneeScolaire.anneeScolaire }}
+                            </a>
+                            {% endif %}
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            {{ inscription.anneeScolaire.anneeScolaire }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Paiements récents -->
+        <div class="card mt-3">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0">
+                    <i class="fas fa-money-bill-wave me-2"></i>
+                    Derniers paiements
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Mois</th>
+                                <th>Année</th>
+                                <th>Montant</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for paiement in derniers_paiements %}
+                            <tr>
+                                <td>{{ paiement.get_mois_display }}</td>
+                                <td>{{ paiement.annee_paiement }}</td>
+                                <td><strong>{{ paiement.montant|floatformat:0 }} FCFA</strong></td>
+                                <td>{{ paiement.date_paiement|date:"d/m/Y" }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Aucun paiement enregistré
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-end">
+                    <a href="{% url 'fondamental:paiement_eleve_annee' eleve.id annee_encours %}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-eye"></i> Voir tous les paiements
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Graphique d'évolution des notes -->
+{% if inscriptions %}
+<div class="row mt-3">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    Évolution des performances
+                </h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chartEvolution"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('chartEvolution');
+    if (!ctx) return;
+
+    const labels = [];
+    const moyennes = [];
+
+    {% for inscription in inscriptions %}
+        {% with resultat=inscription.resultattrimestre_set.first %}
+            {% if resultat %}
+                labels.push("{{ inscription.anneeScolaire }}");
+                moyennes.push({{ resultat.moyenne_generale }});
+            {% endif %}
+        {% endwith %}
+    {% endfor %}
+
+    if (labels.length > 0) {
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Moyenne générale',
+                    data: moyennes,
+                    borderColor: 'rgba(40, 167, 69, 1)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.1,
+                    pointBackgroundColor: moyennes.map(m =>
+                        m >= 12 ? 'rgba(40, 167, 69, 1)' :
+                        m >= 10 ? 'rgba(255, 193, 7, 1)' :
+                        'rgba(220, 53, 69, 1)'
+                    ),
+                    pointRadius: 6,
+                    pointHoverRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    title: {
+                        display: true,
+                        text: 'Évolution des moyennes de {{ eleve.nomEleve }} {{ eleve.prenomEleve }}'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 20,
+                        ticks: {
+                            callback: function(value) { return value + '/20'; }
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Proposition de passage - {{ classe.nomClasse }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4>
+        <i class="fas fa-list-ol me-2"></i>
+        Proposition de passage - {{ classe.nomClasse }} ({{ annee_scolaire }})
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'fondamental:proposition_passage_pdf' classe.idClasse annee_scolaire %}" class="btn btn-danger btn-sm">
+            <i class="fas fa-file-pdf"></i> Télécharger en PDF
+        </a>
+        <a href="{% url 'fondamental:proposition_passage_index' %}" class="btn btn-info btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+{# ============================================================ #}
+{# ✅ EN-TÊTE SIMPLIFIÉ : retrait des infos école en haut        #}
+{# ============================================================ #}
+<div class="text-center mb-3">
+    <strong>TABLEAU DE DONNEES ET DE PROPOSITION DE PASSAGE, DE REDOUBLEMENTS ET D'EXCLUSION</strong><br>
+    <strong>Moyenne par ordre de merite</strong>
+</div>
+
+<p><strong>ECOLE DE :</strong> {{ ecole.nom }}</p>
+
+<h5 class="text-center text-decoration-underline">{{ libelle_cycle }}</h5>
+
+<div class="table-responsive">
+    <table class="table table-bordered" style="font-size: 0.7rem;">
+        <thead class="table-dark">
+            <tr>
+                <th>N°</th>
+                <th>Prénoms</th>
+                <th>Nom</th>
+                <th>Sexe</th>
+                <th>Jour</th>
+                <th>Mois</th>
+                <th>Année</th>
+                <th>Lieu Naiss.</th>
+                <th>N° délivr.</th>
+                <th>Date délivr.</th>
+                <th>Père</th>
+                <th>Mère</th>
+                <th>Scol 1°c</th>
+
+                {# ✅ Scol 2°c uniquement pour le 2e cycle #}
+                {% if not est_1er_cycle %}<th>Scol 2°c</th>{% endif %}
+
+                {# ✅ Scol Tot uniquement pour le 2e cycle (redondant au 1er) #}
+                {% if not est_1er_cycle %}<th>Scol Tot</th>{% endif %}
+
+                <th>1er Red</th>
+                <th>2è Red</th>
+                <th>3è Red</th>
+                <th>Année Recrut</th>
+                <th>Ecole Recrut</th>
+
+                {% if not est_1er_cycle %}<th>Ecole fin 1c</th>{% endif %}
+                {% if not est_1er_cycle %}<th>Année 7A</th>{% endif %}
+
+                <th>Ecole An dernier</th>
+                <th>Moy-Ann</th>
+                <th>Prop-Cons</th>
+                <th>Déc D/CAP</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ligne in lignes %}
+            <tr>
+                <td>{{ ligne.rang }}</td>
+                <td>{{ ligne.eleve.prenomEleve }}</td>
+                <td>{{ ligne.eleve.nomEleve }}</td>
+                <td>{{ ligne.eleve.get_sexe_display|default:"" }}</td>
+                <td>{{ ligne.eleve.dateNaiss.day }}</td>
+                <td>{{ ligne.eleve.dateNaiss.month }}</td>
+                <td>{{ ligne.eleve.dateNaiss.year }}</td>
+                <td>{{ ligne.eleve.lieuNaiss }}</td>
+                <td>{{ ligne.eleve.numero_acte_naissance|default:"" }}</td>
+                <td>{{ ligne.eleve.date_delivrance_acte|date:"d/m/Y"|default:"" }}</td>
+                <td>{{ ligne.eleve.pere|default:"" }}</td>
+                <td>{{ ligne.eleve.mere|default:"" }}</td>
+                <td>{{ ligne.eleve.scolarite_1er_cycle }}</td>
+
+                {# ✅ Scol 2°c uniquement 2e cycle #}
+                {% if not est_1er_cycle %}
+                    <td>{{ ligne.eleve.scolarite_2e_cycle }}</td>
+                    <td>{{ ligne.eleve.scolarite_totale }}</td>
+                {% endif %}
+
+                <td>{{ ligne.eleve.redoublement_1|default:"" }}</td>
+                <td>{{ ligne.eleve.redoublement_2|default:"" }}</td>
+                <td>{{ ligne.eleve.redoublement_3|default:"" }}</td>
+                <td>{{ ligne.eleve.annee_recrutement|default:"" }}</td>
+                <td>{{ ligne.eleve.ecole_recrutement|default:"" }}</td>
+
+                {% if not est_1er_cycle %}
+                    <td>{{ ligne.eleve.ecole_fin_1er_cycle|default:"" }}</td>
+                    <td>{{ ligne.eleve.annee_entree_7eme|default:"" }}</td>
+                {% endif %}
+
+                <td>{{ ligne.eleve.ecole_an_dernier|default:"" }}</td>
+                <td>
+                    {% if ligne.moyenne_annuelle is not None %}
+                        {{ ligne.moyenne_annuelle }}
+                    {% endif %}
+                </td>
+                <td><!--{{ ligne.prop_cons|default:"" }}--></td>
+                <td></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="26" class="text-center text-muted">
+                    Aucun élève inscrit dans cette classe pour cette année.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div style="page-break"></div>
+
+{# ============================================================ #}
+{# ✅ TABLEAU RÉCAPITULATIF (inchangé)                           #}
+{# ============================================================ #}
+<h5 class="text-center text-decoration-underline mt-4">TABLEAU RECAPITULATIF</h5>
+<table class="table table-bordered w-50 mx-auto">
+    <thead class="table-dark">
+        <tr>
+            <th>FLUX / Evènements</th>
+            <th>Garçons</th>
+            <th>Filles</th>
+            <th>TOTAL Elèves</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>PASSANTS</td>
+            <td>{{ passants_garcons }}</td>
+            <td>{{ passants_filles }}</td>
+            <td>{{ passants_total }}</td>
+        </tr>
+        <tr>
+            <td>REDOUBLANTS</td>
+            <td>{{ redoublants_garcons }}</td>
+            <td>{{ redoublants_filles }}</td>
+            <td>{{ redoublants_total }}</td>
+        </tr>
+        <tr>
+            <td>EXCLUS</td>
+            <td class="text-center">-</td>
+            <td class="text-center">-</td>
+            <td class="text-center">-</td>
+        </tr>
+        <tr class="table-secondary fw-bold">
+            <td>TOTAL Elèves</td>
+            <td>{{ total_garcons }}</td>
+            <td>{{ total_filles }}</td>
+            <td>{{ total_eleves }}</td>
+        </tr>
+    </tbody>
+</table>
+
+<p class="small"><strong>NB :</strong> Evitez les surcharges, et l'utilisation du correcteur.</p>
+
+<div class="border p-2 small">
+    <strong>NB :</strong><br>
+    1- Sont exclus les élèves qui n'ont pas d'enregistrements complets c-a-d sans DOSSIER SCOLAIRE (sans renseignements complets) et ceux qui sont en limite de scolarité et d'âge.<br>
+    2- On rappelle qu'un élève n'a droit qu'à deux (2) redoublants sur des années d'études différentes dans son cycle d'études.<br>
+    3- L'élève ne peut doubler qu'une seule fois son année d'études au 2er Cycle, exceptée la 9ème Année d'études s'il n'a jamais doublé avant la 9ème Année.<br>
+    4- L'élève ne peut doubler que 3 années d'étude différentes entre le 1er cycle et le 2e cycle. Soit 2 redoublement au cycle 1 et 1 au cycle 2 ou inversement.<br>
+    5- Les données du tableau doivent être conformes à celles des dossiers scolaires en état civil et en scolarité.
+</div>
+
+<div class="text-end mt-4">
+    <p>Fait à Bamako, Le ...../....../20.....</p>
+</div>
+
+<p>
+    <strong><u>Le (La) Directeur(trice)</u></strong>
+    &nbsp;&nbsp;&nbsp; Prénoms et Nom : {{ ecole.nom_directeur|default:"" }}
+</p>
+<p class="text-end fst-italic">(Cachet et Signature)</p>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .page-break { page-break-before: always; break-before: page; }
+}
+</style>
+{% endblock %}

@@ -1,0 +1,77 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Nouvelle{% endif %} matière{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-book me-2"></i>
+        {% if form.instance.pk %}
+            Modifier : {{ form.instance.nom }}
+        {% else %}
+            Nouvelle matière
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:matiere_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body">
+        <form method="post" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nom <span class="text-danger">*</span></label>
+                    {{ form.nom }}
+                    {% if form.nom.errors %}<div class="text-danger small">{{ form.nom.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Nom en arabe</label>
+                    {{ form.nom_arabe }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Domaine <span class="text-danger">*</span></label>
+                    {{ form.domaine }}
+                    {% if form.domaine.errors %}<div class="text-danger small">{{ form.domaine.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label">Ordre d'affichage</label>
+                    {{ form.ordre_affichage }}
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        {{ form.obligatoire }}
+                        <label class="form-check-label">Matière obligatoire</label>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <div class="form-check">
+                        {{ form.active }}
+                        <label class="form-check-label">Matière active</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                <a href="{% url 'lycee:matiere_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Enregistrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

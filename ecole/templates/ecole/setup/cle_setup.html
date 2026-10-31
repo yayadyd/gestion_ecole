@@ -1,0 +1,142 @@
+{% extends 'ecole/setup/base_setup.html' %}
+{% load static %}
+
+{% block title %}Configuration initiale — Mali Kalanso{% endblock %}
+
+{% block content %}
+<div class="text-center mb-4">
+    <i class="fas fa-key fa-4x text-primary mb-3"></i>
+    <h3>Bienvenue dans Mali Kalanso</h3>
+    <p class="text-muted">
+        Avant de pouvoir utiliser l'application,
+        vous devez effectuer une configuration initiale.
+    </p>
+</div>
+
+<!-- Clé de configuration -->
+<div class="alert alert-warning">
+    <h6 class="mb-3">
+        <i class="fas fa-shield-alt me-1"></i>
+        Votre clé de configuration unique
+    </h6>
+
+    <div class="input-group mb-3">
+        <input type="text"
+               class="form-control font-monospace text-center"
+               value="{{ cle }}"
+               readonly
+               id="cleSetup"
+               style="font-size: 1.1rem; letter-spacing: 1px;">
+        <button class="btn btn-outline-dark"
+                type="button"
+                onclick="copierCle(this)"
+                title="Copier la clé">
+            <i class="fas fa-copy"></i>
+        </button>
+    </div>
+
+    <small class="text-muted">
+        <i class="fas fa-info-circle me-1"></i>
+        Cette clé est unique à votre installation. Conservez-la en sécurité.
+    </small>
+</div>
+
+<!-- Bouton principal -->
+<div class="text-center mt-4">
+    <a href="{% url 'setup_step1' %}?key={{ cle }}"
+       class="btn btn-primary btn-lg px-5">
+        <i class="fas fa-arrow-right me-2"></i>
+        Accéder à la configuration
+    </a>
+</div>
+
+<!-- Instructions -->
+<div class="mt-4 pt-4 border-top">
+    <h6 class="text-muted mb-3 text-center">
+        <i class="fas fa-list-ol me-1"></i>
+        Ce qui vous attend
+    </h6>
+    <div class="row text-center">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-light h-100 border-0">
+                <div class="card-body py-3">
+                    <span class="badge bg-primary rounded-circle mb-2"
+                          style="width: 30px; height: 30px; line-height: 20px;">
+                        1
+                    </span>
+                    <h6 class="mb-1">École</h6>
+                    <small class="text-muted">
+                        Informations de votre établissement
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-light h-100 border-0">
+                <div class="card-body py-3">
+                    <span class="badge bg-primary rounded-circle mb-2"
+                          style="width: 30px; height: 30px; line-height: 20px;">
+                        2
+                    </span>
+                    <h6 class="mb-1">Administrateur</h6>
+                    <small class="text-muted">
+                        Création de votre compte
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-light h-100 border-0">
+                <div class="card-body py-3">
+                    <span class="badge bg-primary rounded-circle mb-2"
+                          style="width: 30px; height: 30px; line-height: 20px;">
+                        3
+                    </span>
+                    <h6 class="mb-1">Année scolaire</h6>
+                    <small class="text-muted">
+                        Configuration finale
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Avertissement de sécurité -->
+<div class="alert alert-danger mt-4">
+    <i class="fas fa-exclamation-triangle me-1"></i>
+    <strong>Ne partagez pas cette clé.</strong>
+    Elle empêche toute personne malveillante d'accéder à la configuration.
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function copierCle(btn) {
+    const input = document.getElementById('cleSetup');
+    if (!input || !input.value) return;
+
+    input.select();
+    input.setSelectionRange(0, 99999);
+
+    try {
+        document.execCommand('copy');
+
+        // Feedback visuel
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        btn.classList.remove('btn-outline-dark');
+        btn.classList.add('btn-success');
+
+        setTimeout(() => {
+            btn.innerHTML = originalHTML;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-dark');
+        }, 2000);
+    } catch (err) {
+        alert('Impossible de copier automatiquement.\nSélectionnez et copiez manuellement.');
+    }
+}
+</script>
+{% endblock %}

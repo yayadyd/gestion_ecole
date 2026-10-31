@@ -1,0 +1,136 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Tableau de bord Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<!-- En-tête avec filtre -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <h4 class="mb-0">
+        <i class="fas fa-tachometer-alt me-2"></i> Tableau de bord Lycée
+    </h4>
+    
+    <!-- ✅ SELECTEUR D'ANNÉE -->
+    <form method="get" class="d-flex align-items-center gap-2">
+        <label for="annee" class="form-label mb-0 text-muted fw-bold">
+            <i class="fas fa-calendar-alt me-1"></i> Année :
+        </label>
+        <select name="annee" id="annee" class="form-select form-select-sm" style="width: 200px;" onchange="this.form.submit()">
+            {% for a in annees %}
+                <option value="{{ a.idAnneeScolaire }}" {% if a.idAnneeScolaire == annee_selectionnee.idAnneeScolaire %}selected{% endif %}>
+                    {{ a.anneeScolaire }}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- Cartes statistiques -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase small mb-1 opacity-75">Élèves inscrits</h6>
+                <h2 class="mb-0">{{ nb_inscriptions }}</h2>
+                <small class="opacity-75">Total élèves : {{ nb_eleves }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase small mb-1 opacity-75">Classes actives</h6>
+                <h2 class="mb-0">{{ nb_classes }}</h2>
+                <small class="opacity-75">Pour l'année sélectionnée</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase small mb-1 opacity-75">Matières</h6>
+                <h2 class="mb-0">{{ nb_matieres }}</h2>
+                <small class="opacity-75">Catalogue lycée</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body">
+                <h6 class="text-uppercase small mb-1 opacity-75">Niveaux</h6>
+                <h2 class="mb-0">3</h2>
+                <small class="opacity-75">10ème, 11ème, Terminale</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Répartition par niveau -->
+<div class="row g-3 mb-4">
+    <div class="col-md-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-chart-bar me-1"></i> Répartition par niveau ({{ annee_selectionnee.anneeScolaire }})</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Niveau</th>
+                            <th class="text-end">Élèves</th>
+                            <th class="text-end">%</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for n in niveaux_stats %}
+                        <tr>
+                            <td><strong>{{ n.libelle }}</strong></td>
+                            <td class="text-end">{{ n.nb }}</td>
+                            <td class="text-end">
+                                {% if nb_inscriptions > 0 %}
+                                    {% widthratio n.nb nb_inscriptions 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Actions rapides -->
+<div class="card shadow-sm">
+    <div class="card-header bg-primary text-white">
+        <h6 class="mb-0"><i class="fas fa-bolt me-1"></i> Actions rapides</h6>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <a href="{% url 'lycee:eleve_create' %}" class="btn btn-outline-primary w-100">
+                    <i class="fas fa-user-plus"></i> Nouvel élève
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'lycee:inscription_create' %}" class="btn btn-outline-success w-100">
+                    <i class="fas fa-file-signature"></i> Nouvelle inscription
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'lycee:saisie_notes_par_classe' %}" class="btn btn-outline-info w-100">
+                    <i class="fas fa-edit"></i> Saisir notes
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a href="{% url 'lycee:bulletins_index' %}" class="btn btn-outline-warning w-100">
+                    <i class="fas fa-file-alt"></i> Bulletins
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

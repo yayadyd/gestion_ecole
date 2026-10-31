@@ -1,0 +1,149 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Proposition de passage{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-list-ol me-2"></i>
+        Proposition de passage
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <form method="get" class="d-flex gap-2">
+        {% if cycle_filtre %}<input type="hidden" name="cycle" value="{{ cycle_filtre }}">{% endif %}
+        <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for annee in annees_scolaires %}
+            <option value="{{ annee.anneeScolaire }}"
+                    {% if annee_selectionnee and annee.anneeScolaire == annee_selectionnee.anneeScolaire %}selected{% endif %}>
+                {{ annee.anneeScolaire }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<!-- Info année -->
+<div class="alert alert-info">
+    <i class="fas fa-calendar-alt me-2"></i>
+    <strong>Année scolaire :</strong> {{ annee_encours|default:"Aucune" }}
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:proposition_passage_index' %}?cycle=1er{% if annee_encours %}&annee={{ annee_encours }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:proposition_passage_index' %}?cycle=2e{% if annee_encours %}&annee={{ annee_encours }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:proposition_passage_index' %}{% if annee_encours %}?annee={{ annee_encours }}{% endif %}">
+            <i class="fas fa-list me-1"></i> Toutes
+        </a>
+    </li>
+</ul>
+
+<!-- Liste des classes 1er cycle -->
+{% if not cycle_filtre or cycle_filtre == '1er' %}
+<div class="card mb-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 1er Cycle
+            <span class="badge bg-light text-dark ms-2">{{ classes_1er|length }} classe{{ classes_1er|length|pluralize }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if classes_1er %}
+        <div class="row">
+            {% for item in classes_1er %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'fondamental:proposition_passage' item.classe.idClasse annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x text-info mb-2"></i>
+                            <h5 class="mb-1">{{ item.classe.nomClasse }}</h5>
+                            <p class="mb-2 text-muted small">
+                                <i class="fas fa-user-graduate me-1"></i>
+                                {{ item.nb_eleves }} élève{{ item.nb_eleves|pluralize }}
+                            </p>
+                            <span class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-table"></i> Voir le tableau
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune classe du 1er cycle enregistrée.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Liste des classes 2e cycle -->
+{% if not cycle_filtre or cycle_filtre == '2e' %}
+<div class="card mb-3">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-book me-2"></i> 2e Cycle
+            <span class="badge bg-light text-dark ms-2">{{ classes_2e|length }} classe{{ classes_2e|length|pluralize }}</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if classes_2e %}
+        <div class="row">
+            {% for item in classes_2e %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <a href="{% url 'fondamental:proposition_passage' item.classe.idClasse annee_encours %}"
+                   class="text-decoration-none">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chalkboard fa-2x text-primary mb-2"></i>
+                            <h5 class="mb-1">{{ item.classe.nomClasse }}</h5>
+                            <p class="mb-2 text-muted small">
+                                <i class="fas fa-user-graduate me-1"></i>
+                                {{ item.nb_eleves }} élève{{ item.nb_eleves|pluralize }}
+                            </p>
+                            <span class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-table"></i> Voir le tableau
+                            </span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune classe du 2e cycle enregistrée.</p>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Aide -->
+<div class="alert alert-light border">
+    <h6 class="mb-2"><i class="fas fa-info-circle text-primary me-2"></i> À propos</h6>
+    <p class="small mb-0">
+        Le tableau de proposition de passage présente les élèves d'une classe <strong>par ordre de mérite</strong>,
+        avec leur moyenne annuelle et la proposition du conseil (Passant / Redoublant).
+        Cliquez sur une classe pour voir le tableau et télécharger le PDF.
+    </p>
+</div>
+
+{% endblock %}

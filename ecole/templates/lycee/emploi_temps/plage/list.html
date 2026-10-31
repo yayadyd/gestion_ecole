@@ -1,0 +1,111 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Plages horaires (Lycée){% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-clock me-2"></i>
+        Plages horaires — Lycée
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:plage_lycee_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Ajouter une plage
+        </a>
+        <a href="{% url 'lycee:emploi_temps_lycee_index' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Statistiques -->
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white">
+            <div class="card-body py-2">
+                <h6 class="mb-0">Total plages</h6>
+                <h3 class="mb-0">{{ total }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body py-2">
+                <h6 class="mb-0">Plages de cours</h6>
+                <h3 class="mb-0">{{ nb_cours }}</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-dark">
+            <div class="card-body py-2">
+                <h6 class="mb-0">Pauses</h6>
+                <h3 class="mb-0">{{ nb_pauses }}</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tableau -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 60px;">Ordre</th>
+                    <th>Horaire</th>
+                    <th>Libellé</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plage in plages %}
+                <tr>
+                    <td class="text-center">{{ plage.ordre }}</td>
+                    <td>
+                        <strong>{{ plage.heure_debut|time:"H:i" }} - {{ plage.heure_fin|time:"H:i" }}</strong>
+                    </td>
+                    <td>{{ plage.libelle|default:"—" }}</td>
+                    <td class="text-center">
+                        {% if plage.est_pause %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-pause"></i> Pause
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-book"></i> Cours
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="btn-group btn-group-sm">
+                            <a href="{% url 'lycee:plage_lycee_update' plage.pk %}"
+                               class="btn btn-warning" title="Modifier">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="{% url 'lycee:plage_lycee_delete' plage.pk %}"
+                               class="btn btn-danger" title="Supprimer">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-4">
+                        <i class="fas fa-info-circle fa-2x mb-2"></i>
+                        <p class="mb-2">Aucune plage horaire enregistrée.</p>
+                        <a href="{% url 'lycee:plage_lycee_create' %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus"></i> Ajouter la première plage
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

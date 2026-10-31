@@ -1,0 +1,196 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Comptabilité - Recettes{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-hand-holding-usd me-2"></i>
+        Recettes (hors paiements)
+        <span class="badge bg-success ms-2">{{ nb_recettes }}</span>
+    </h4>
+    <div>
+        <a href="{% url 'lycee:comptabilite_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Tableau de bord
+        </a>
+        <a href="{% url 'lycee:recette_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle recette
+        </a>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col-md-4">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <h6 class="mb-0"><i class="fas fa-money-bill-wave me-1"></i> Total filtré</h6>
+                <h3 class="mb-0">{{ total|floatformat:0 }} FCFA</h3>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text" name="search" class="form-control"
+                           placeholder="Libellé, source, N° pièce..."
+                           value="{{ search }}">
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="categorie" class="form-select">
+                    <option value="">Toutes catégories</option>
+                    {% for c in categories %}
+                    <option value="{{ c.id }}" {% if categorie_id == c.id|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes années</option>
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}" {% if annee_id == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="mois" class="form-select">
+                    <option value="">Tous les mois</option>
+                    {% for m, nom in mois_choices %}
+                    <option value="{{ m }}" {% if mois_filter == m|stringformat:"s" %}selected{% endif %}>
+                        {{ nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="section" class="form-select">
+                    <option value="">Toutes sections</option>
+                    {% for code, label in sections_choix %}
+                    <option value="{{ code }}" {% if section == code %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+            {% if search or categorie_id or annee_id or mois_filter %}
+            <div class="col-12">
+                <a href="{% url 'lycee:recette_list' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Réinitialiser
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        {% if recettes %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Date</th>
+                        <th>Libellé</th>
+                        <th>Catégorie</th>
+                        <th>Source</th>
+                        <th>Mode</th>
+                        <th class="text-end">Montant</th>
+                        <th class="text-center">Justif.</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for recette in recettes %}
+                    <tr>
+                        <td>{{ recette.date_recette|date:"d/m/Y" }}</td>
+                        <td>
+                            <strong>{{ recette.libelle }}</strong>
+                            {% if recette.numero_piece %}
+                            <br><small class="text-muted">Pièce : {{ recette.numero_piece }}</small>
+                            {% endif %}
+                        </td>
+                        <td><span class="badge bg-secondary">{{ recette.categorie.nom }}</span></td>
+                        <td>{{ recette.source|default:"-" }}</td>
+                        <td>{{ recette.get_mode_paiement_display }}</td>
+                        <td class="text-end">
+                            <strong class="text-success">{{ recette.montant|floatformat:0 }} FCFA</strong>
+                        </td>
+                        <td class="text-center">
+                            {% if recette.justificatif %}
+                            <a href="{{ recette.justificatif.url }}" target="_blank"
+                               class="btn btn-sm btn-outline-info">
+                                <i class="fas fa-paperclip"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'lycee:recette_update' recette.pk %}" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'lycee:recette_delete' recette.pk %}" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-light">
+                        <td colspan="5" class="text-end"><strong>TOTAL :</strong></td>
+                        <td class="text-end"><strong class="text-success">{{ total|floatformat:0 }} FCFA</strong></td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-double-left"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-left"></i></a></li>
+                {% endif %}
+                <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-right"></i></a></li>
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}"><i class="fas fa-angle-double-right"></i></a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Aucune recette trouvée</p>
+            <a href="{% url 'lycee:recette_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Ajouter une recette
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

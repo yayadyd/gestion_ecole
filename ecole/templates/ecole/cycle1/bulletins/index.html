@@ -1,0 +1,95 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Bulletins mensuels (1er cycle){% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4><i class="fas fa-calendar-check me-2"></i> Bulletins mensuels - 1er cycle</h4>
+    <form method="get" class="d-flex gap-2">
+        <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+            {% for annee in annees_scolaires %}
+            <option value="{{ annee.anneeScolaire }}" {% if annee.anneeScolaire == annee_encours %}selected{% endif %}>
+                {{ annee.anneeScolaire }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-calendar-alt me-2"></i> <strong>Année scolaire :</strong> {{ annee_encours }}
+</div>
+
+<div class="card mb-3">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">Sélectionner une classe et un mois</h5>
+    </div>
+    <div class="card-body">
+        {% if classes %}
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Classe</th>
+                        {% for m, nom in mois_choices %}<th class="text-center">{{ nom }}</th>{% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for classe in classes %}
+                    <tr>
+                        <td><strong>{{ classe.nomClasse }}</strong></td>
+                        {% for m, nom in mois_choices %}
+                        <td class="text-center">
+                            <a href="{% url 'fondamental:cycle1_bulletin_classe' classe.idClasse annee_encours m %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Aucune classe du 1er cycle enregistrée.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Derniers résultats mensuels générés</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Élève</th><th>Classe</th><th>Composition</th><th>Moyenne</th><th>Date</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    {% for resultat in derniers_resultats %}
+                    <tr>
+                        <td>{{ resultat.inscription.eleve }}</td>
+                        <td>{{ resultat.inscription.classe }}</td>
+                        <td>{{ resultat.composition }}</td>
+                        <td>
+                            <strong class="{% if resultat.moyenne_generale >= 10 %}text-success{% else %}text-danger{% endif %}">
+                                {{ resultat.moyenne_generale }}
+                            </strong>
+                        </td>
+                        <td>{{ resultat.date_calcul|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'fondamental:cycle1_bulletin_eleve' resultat.inscription.eleve.id annee_encours resultat.composition.mois %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="6" class="text-center text-muted">Aucun résultat mensuel généré pour {{ annee_encours }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

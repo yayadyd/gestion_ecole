@@ -1,0 +1,66 @@
+{% extends 'ecole/setup/base_setup.html' %}
+
+{% block title %}Étape 2 - Compte administrateur{% endblock %}
+
+{% block content %}
+<h4 class="mb-3">
+    <i class="fas fa-user-shield text-primary me-2"></i>
+    Étape 2 : Compte administrateur
+</h4>
+<p class="text-muted mb-4">
+    Créez votre compte pour accéder à l'application. Ce compte aura tous les droits.
+</p>
+
+<form method="post">
+    {% csrf_token %}
+    <input type="hidden" name="key" value="{{ cle }}">
+    <div class="mb-3">
+        <label class="form-label required">Nom d'utilisateur</label>
+        <input type="text" name="username" class="form-control form-control-lg"
+               placeholder="Ex: directeur"
+               value="{{ username|default:'' }}" required autofocus>
+        <div class="form-text">Sans espaces, en minuscules de préférence</div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Email</label>
+        <input type="email" name="email" class="form-control"
+               placeholder="Ex: directeur@ecole.ml"
+               value="{{ email|default:'' }}">
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label class="form-label required">Mot de passe</label>
+            <input type="password" name="password" class="form-control form-control-lg"
+                   placeholder="Au moins 8 caractères" required>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label class="form-label required">Confirmer le mot de passe</label>
+            <input type="password" name="password_confirm" class="form-control form-control-lg"
+                   placeholder="Retapez le mot de passe" required>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Conseil :</strong> Utilisez un mot de passe fort (majuscules, minuscules, chiffres, symboles).
+    </div>
+
+    <div class="alert alert-warning">
+        <i class="fas fa-shield-alt me-2"></i>
+        <strong>Type de compte :</strong> Ce compte est un <strong>compte de gestion scolaire</strong>.
+        Il vous permet de gérer les élèves, les notes, les paiements et la comptabilité,
+        mais <strong>pas</strong> la licence ni les paramètres système.
+    </div>
+
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'setup_step1' %}" class="btn btn-secondary btn-lg">
+            <i class="fas fa-arrow-left me-2"></i> Précédent
+        </a>
+        <button type="submit" class="btn btn-primary btn-lg">
+            Suivant <i class="fas fa-arrow-right ms-2"></i>
+        </button>
+    </div>
+</form>
+{% endblock %}

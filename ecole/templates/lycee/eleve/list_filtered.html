@@ -1,0 +1,256 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Liste des élèves du Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap no-print">
+    <h4 class="mb-0">
+        <i class="fas fa-users me-2"></i>
+        Liste des élèves du Lycée
+        <span class="badge bg-primary ms-2">{{ total_eleves }}</span>
+        {% if niveau_filtre %}
+        <span class="badge bg-info ms-1">
+            {% if niveau_filtre == '10' %}10ème Année
+            {% elif niveau_filtre == '11' %}11ème Année
+            {% else %}Terminale{% endif %}
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:eleve_list_filtered_pdf' %}{% if request.GET.urlencode %}?{{ request.GET.urlencode }}{% endif %}"
+           class="btn btn-danger" title="Exporter en PDF">
+            <i class="fas fa-file-pdf"></i> Exporter liste PDF
+        </a>
+        
+        <a href="{% url 'lycee:eleve_list' %}" class="btn btn-info">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+
+
+<!-- Filtres -->
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <input type="hidden" name="niveau" value="{{ niveau_filtre }}">
+
+            <!-- Recherche -->
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text"
+                           name="search"
+                           class="form-control"
+                           placeholder="Rechercher par nom, prénom ou matricule..."
+                           value="{{ search }}">
+                </div>
+            </div>
+
+            <!-- Filtre année -->
+            <div class="col-md-3">
+                <select name="annee" class="form-select" id="selectAnnee" onchange="this.form.submit()">
+                    <option value="">Toutes les années</option>
+                    {% for annee in annees %}
+                    <option value="{{ annee.idAnneeScolaire }}"
+                            {% if annee_id|add:"0" == annee.idAnneeScolaire %}selected{% endif %}>
+                        {{ annee.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Filtre classe -->
+            <div class="col-md-3">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for classe in classes %}
+                    <option value="{{ classe.id_classe }}"
+                            {% if classe_id|add:"0" == classe.id_classe %}selected{% endif %}>
+                        {{ classe.nom }}
+                        {% if classe.serie %} ({{ classe.serie }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Boutons -->
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+
+            <!-- Réinitialiser -->
+            {% if search or classe_id or annee_id %}
+            <div class="col-12">
+                <a href="{% url 'lycee:eleve_list_filtered' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Réinitialiser les filtres
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Liste des élèves -->
+<div class="card">
+    <div class="card-body">
+
+        <!-- En-tête pour l'impression -->
+        <div class="text-center mb-3 print-header">
+            <h3 class="text-uppercase">Liste des élèves — Lycée</h3>
+            <h5>
+                {% if classe_nom %}
+                    <strong>Classe :</strong> {{ classe_nom }}
+                {% endif %}
+                {% if annee_nom %}
+                    <span class="ms-3"><strong>Année scolaire :</strong> {{ annee_nom }}</span>
+                {% endif %}
+                {% if not classe_nom and not annee_nom %}
+                    <span class="text-muted">Tous les élèves du lycée</span>
+                {% endif %}
+            </h5>
+            <hr>
+        </div>
+
+        {% if eleves %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        <th>N°</th>
+                        <th>Matricule</th>
+                        <th>Prénoms</th>
+                        <th>Noms</th>
+                        <th>Sexe</th>
+                        <th>Date naiss.</th>
+                        <th>Lieu naiss.</th>
+                        <th>Classe actuelle</th>
+                        <th>Statut</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eleve in eleves %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><code class="small">{{ eleve.matricule }}</code></td>
+                        <td>{{ eleve.prenom|upper }}</td>
+                        <td>{{ eleve.nom }}</td>
+                        <td>
+                            {% if eleve.sexe == 'M' %}
+                                <span class="badge bg-info">M</span>
+                            {% else %}
+                                <span class="badge bg-danger">F</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ eleve.date_naissance|date:"d/m/Y" }}</td>
+                        <td>{{ eleve.lieu_naissance }}</td>
+                        <td>
+                            {% if eleve.infos_actuelles %}
+                                <span class="badge bg-primary">{{ eleve.infos_actuelles.classe }}</span>
+                                <br>
+                                <small class="text-muted">{{ eleve.infos_actuelles.annee }}</small>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if eleve.statut == 'oriente' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Orienté
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-user-graduate"></i> Payant
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="no-print">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'lycee:eleve_detail' eleve.pk %}"
+                                   class="btn btn-info" title="Voir les détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'lycee:eleve_update' eleve.pk %}"
+                                   class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if eleve.infos_actuelles %}
+                                <a href="{% url 'lycee:paiement_detail' eleve.infos_actuelles.inscription_id %}"
+                                   class="btn btn-success" title="Paiements">
+                                    <i class="fas fa-money-bill-wave"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="10">
+                            <strong>Total : {{ total_eleves }} élève(s)</strong>
+                            {% if niveau_filtre %}
+                                {% if niveau_filtre == '10' %}pour la 10ème Année
+                                {% elif niveau_filtre == '11' %}pour la 11ème Année
+                                {% else %}pour la Terminale{% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucun élève trouvé avec ces critères.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+@media print {
+    .no-print { display: none !important; }
+    .card { border: none !important; box-shadow: none !important; }
+    .card-body { padding: 10px !important; }
+    .table { font-size: 10px; }
+    .table th, .table td { padding: 4px !important; }
+    .table-dark {
+        background-color: #343a40 !important;
+        color: white !important;
+    }
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: #f8f9fa !important;
+    }
+    .print-header { margin-bottom: 20px !important; }
+    .print-header h3 { font-size: 18px !important; font-weight: bold !important; }
+    .print-header h5 { font-size: 14px !important; }
+    .table-bordered { border: 1px solid #000 !important; }
+    .table-bordered th, .table-bordered td { border: 1px solid #000 !important; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Recherche automatique après 500ms d'inactivité
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+
+{% endblock %}

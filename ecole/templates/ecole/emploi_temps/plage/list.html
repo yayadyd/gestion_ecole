@@ -1,0 +1,172 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Plages horaires{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-clock me-2"></i>
+        Plages horaires
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'fondamental:plage_horaire_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Ajouter une plage
+        </a>
+        <a href="{% url 'fondamental:emploi_temps_index' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- ✅ Onglets par cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:plage_horaire_list' %}">
+            <i class="fas fa-list"></i> Toutes
+            <span class="badge bg-secondary">{{ nb_1er|add:nb_2e }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="?cycle=1er">
+            <i class="fas fa-child"></i> 1er Cycle
+            <span class="badge bg-info">{{ nb_1er }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="?cycle=2e">
+            <i class="fas fa-user-graduate"></i> 2e Cycle
+            <span class="badge bg-primary">{{ nb_2e }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- ✅ Section 1er cycle -->
+{% if not cycle_filtre or cycle_filtre == '1er' %}
+<div class="card mb-4">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-child me-2"></i>
+            Plages horaires - 1er Cycle
+            <span class="badge bg-light text-dark ms-2">{{ nb_1er }} plage(s)</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 60px;">Ordre</th>
+                    <th>Horaire</th>
+                    <th>Libellé</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plage in plages_1er %}
+                <tr>
+                    <td class="text-center">{{ plage.ordre }}</td>
+                    <td><strong>{{ plage.heure_debut|time:"H:i" }} - {{ plage.heure_fin|time:"H:i" }}</strong></td>
+                    <td>{{ plage.libelle|default:"—" }}</td>
+                    <td class="text-center">
+                        {% if plage.est_pause %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-pause"></i> Pause
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-book"></i> Cours
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'fondamental:plage_horaire_update' plage.pk %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'fondamental:plage_horaire_delete' plage.pk %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-3">
+                        Aucune plage horaire pour le 1er cycle.
+                        <a href="{% url 'fondamental:plage_horaire_create' %}?cycle=1er" class="btn btn-sm btn-primary ms-2">
+                            <i class="fas fa-plus"></i> Ajouter
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- ✅ Section 2e cycle -->
+{% if not cycle_filtre or cycle_filtre == '2e' %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-user-graduate me-2"></i>
+            Plages horaires - 2e Cycle
+            <span class="badge bg-light text-dark ms-2">{{ nb_2e }} plage(s)</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 60px;">Ordre</th>
+                    <th>Horaire</th>
+                    <th>Libellé</th>
+                    <th class="text-center">Type</th>
+                    <th class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plage in plages_2e %}
+                <tr>
+                    <td class="text-center">{{ plage.ordre }}</td>
+                    <td><strong>{{ plage.heure_debut|time:"H:i" }} - {{ plage.heure_fin|time:"H:i" }}</strong></td>
+                    <td>{{ plage.libelle|default:"—" }}</td>
+                    <td class="text-center">
+                        {% if plage.est_pause %}
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-pause"></i> Pause
+                        </span>
+                        {% else %}
+                        <span class="badge bg-success">
+                            <i class="fas fa-book"></i> Cours
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{% url 'fondamental:plage_horaire_update' plage.pk %}" class="btn btn-sm btn-warning">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <a href="{% url 'fondamental:plage_horaire_delete' plage.pk %}" class="btn btn-sm btn-danger">
+                            <i class="fas fa-trash"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted py-3">
+                        Aucune plage horaire pour le 2e cycle.
+                        <a href="{% url 'fondamental:plage_horaire_create' %}?cycle=2e" class="btn btn-sm btn-primary ms-2">
+                            <i class="fas fa-plus"></i> Ajouter
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

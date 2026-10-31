@@ -1,0 +1,521 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Saisie des notes - {{ classe.nom }}{% endblock %}
+
+{% block lycee_content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-edit me-2 text-primary"></i>
+        Saisie des notes - {{ classe.nom }}
+        <span class="badge bg-primary ms-2">{{ trimestre }}</span>
+        <span class="badge bg-secondary ms-1">{{ annee_scolaire.anneeScolaire }}</span>
+    </h4>
+    <a href="{% url 'lycee:saisie_notes_par_classe' %}" class="btn btn-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Changer de classe
+    </a>
+</div>
+
+<!-- Bandeau info matière -->
+<div class="alert alert-info d-flex justify-content-between align-items-center flex-wrap">
+    <div>
+        <strong><i class="fas fa-book me-1"></i> Matière :</strong> {{ matiere.nom }}
+        {% if est_franco_arabe and matiere.nom_arabe %}
+            <span class="text-muted ms-2" dir="rtl">{{ matiere.nom_arabe }}</span>
+        {% endif %}
+        <span class="badge bg-secondary ms-2">{{ matiere.get_domaine_display }}</span>
+    </div>
+    <div>
+        <span class="badge bg-primary">
+            <i class="fas fa-user-graduate me-1"></i>
+            {{ total_eleves }} élève{{ total_eleves|pluralize }}
+        </span>
+        <span class="badge bg-info ms-2">
+            <i class="fas fa-chalkboard me-1"></i>
+            {{ classe.get_niveau_display }}
+            {% if classe.serie %} — {{ classe.get_serie_display }}{% endif %}
+        </span>
+    </div>
+</div>
+
+<!-- Actions -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+    <a href="{% url 'lycee:calculer_moyennes' classe.id_classe trimestre annee_scolaire.idAnneeScolaire %}"
+       class="btn btn-primary btn-sm">
+        <i class="fas fa-calculator"></i> Calculer les moyennes
+    </a>
+    <a href="{% url 'lycee:classer_eleves' classe.id_classe trimestre annee_scolaire.idAnneeScolaire %}"
+       class="btn btn-warning btn-sm">
+        <i class="fas fa-sort"></i> Classer les élèves
+    </a>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Année scolaire</label>
+                <select name="annee_scolaire" class="form-select" onchange="this.form.submit()">
+                    <option value="">-- Sélectionner --</option>
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if annee_scolaire and annee_scolaire.idAnneeScolaire == a.idAnneeScolaire %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Classe (Lycée)</label>
+                <select name="classe" class="form-select" id="selectClasse">
+                    <option value="">-- Sélectionner --</option>
+                    {% for c in classes %}
+                    <option value="{{ c.id_classe }}"
+                            {% if classe and classe.id_classe == c.id_classe %}selected{% endif %}>
+                        {{ c.nom }}
+                        {% if c.serie %} ({{ c.get_serie_display }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Matière</label>
+                <select name="matiere" class="form-select" id="selectMatiere">
+                    <option value="">-- Sélectionner --</option>
+                    {% for m in matieres %}
+                    <option value="{{ m.id_matiere }}"
+                            {% if matiere and matiere.id_matiere == m.id_matiere %}selected{% endif %}>
+                        {{ m.nom }}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% if classe and not matieres %}
+                <small class="text-danger d-block mt-1">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Aucune matière associée à cette classe.
+                </small>
+                {% endif %}
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Trimestre</label>
+                <select name="trimestre" class="form-select">
+                    <option value="">-- Sélectionner --</option>
+                    {% for code, libelle in trimestres %}
+                    <option value="{{ code }}" {% if trimestre == code %}selected{% endif %}>
+                        {{ libelle }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-12">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+                <a href="{% url 'lycee:saisie_notes_par_classe' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Formulaire de saisie -->
+{% if eleves_avec_notes %}
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-edit me-2"></i>
+            Saisie - {{ classe.nom }}
+            — {{ matiere.nom }}
+            — {{ trimestre }}
+            <span class="badge bg-light text-dark ms-2">{{ total_eleves }} élèves</span>
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="{% url 'lycee:saisie_notes_par_classe' %}">
+            {% csrf_token %}
+
+            <input type="hidden" name="annee_scolaire" value="{{ annee_scolaire.idAnneeScolaire }}">
+            <input type="hidden" name="classe" value="{{ classe.id_classe }}">
+            <input type="hidden" name="matiere" value="{{ matiere.id_matiere }}">
+            <input type="hidden" name="trimestre" value="{{ trimestre }}">
+
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th style="width: 50px;">#</th>
+                            <th style="width: 130px;">Matricule</th>
+                            <th>Élève</th>
+                            <th class="text-center" style="width: 140px;">Note de classe /20</th>
+                            <th class="text-center" style="width: 140px;">Note de compo /20</th>
+                            <th class="text-center" style="width: 100px;">Moyenne</th>
+                            <th class="text-center" style="width: 100px;">Statut</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in eleves_avec_notes %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>
+                                <span class="badge bg-secondary">{{ item.eleve.matricule }}</span>
+                            </td>
+                            <td>
+                                {{ item.eleve.nom }} {{ item.eleve.prenom }}
+                                {% if item.eleve.sexe == 'M' %}
+                                    <span class="badge bg-info ms-1">M</span>
+                                {% else %}
+                                    <span class="badge bg-danger ms-1">F</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <input type="number"
+                                    name="note_{{ item.inscription.id_inscription }}_classe"
+                                    class="form-control form-control-sm text-center note-input"
+                                    value="{% if item.note_classe is not None %}{{ item.note_classe|stringformat:'s' }}{% endif %}"
+                                    step="0.25" min="0" max="20" placeholder="0-20"
+                                    autocomplete="off"
+                                    data-inscription="{{ item.inscription.id_inscription }}"
+                                    {% if item.note_classe is not None %}data-exists="true"{% endif %}>
+                            </td>
+                            <td>
+                                <input type="number"
+                                    name="note_{{ item.inscription.id_inscription }}_compo"
+                                    class="form-control form-control-sm text-center note-input"
+                                    value="{% if item.note_composition is not None %}{{ item.note_composition|stringformat:'s' }}{% endif %}"
+                                    step="0.25" min="0" max="20" placeholder="0-20"
+                                    autocomplete="off"
+                                    data-inscription="{{ item.inscription.id_inscription }}"
+                                    {% if item.note_composition is not None %}data-exists="true"{% endif %}>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary moyenne-affichee"
+                                      id="moyenne_{{ item.inscription.id_inscription }}">—</span>
+                            </td>
+                            <td class="text-center">
+                                {% if item.note_classe is not None or item.note_composition is not None %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Saisi
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-minus"></i> Vide
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Enregistrer toutes les notes
+                    </button>
+                    <button type="button" class="btn btn-secondary" id="btnVider">
+                        <i class="fas fa-eraser"></i> Vider les champs
+                    </button>
+                </div>
+                <div class="col-md-6 text-end">
+                    <span class="badge bg-info">
+                        <i class="fas fa-info-circle"></i>
+                        Moyenne = (Compo × 2 + Classe) / 3
+                    </span>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Récapitulatif -->
+<div class="card mt-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0">
+            <i class="fas fa-chart-bar me-2"></i> Récapitulatif
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="card bg-light">
+                    <div class="card-body text-center">
+                        <h6>Total élèves</h6>
+                        <h3>{{ total_eleves }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-success text-white">
+                    <div class="card-body text-center">
+                        <h6>Notes saisies</h6>
+                        <h3 id="nb-saisies">0</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-warning text-white">
+                    <div class="card-body text-center">
+                        <h6>Notes vides</h6>
+                        <h3 id="nb-vides">{{ total_eleves }}</h3>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card bg-info text-white">
+                    <div class="card-body text-center">
+                        <h6>Moyenne classe</h6>
+                        <h3 id="moyenne-classe">—</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% elif classe and matiere and trimestre %}
+<div class="alert alert-warning">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Aucun élève inscrit dans cette classe pour cette année.
+    <a href="{% url 'lycee:inscription_create' %}" class="alert-link">
+        Inscrire un élève
+    </a>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const inputs = document.querySelectorAll('.note-input');
+
+    // ============================================================
+    // NAVIGATION + VALIDATION + STATUT
+    // ============================================================
+    inputs.forEach((input, index) => {
+        // Navigation clavier
+        input.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const nextInput = inputs[index + 1];
+                if (nextInput) nextInput.focus();
+            }
+        });
+
+        // Validation 0-20
+        input.addEventListener('blur', function () {
+            if (this.value) {
+                let val = parseFloat(this.value.replace(',', '.'));
+                if (!isNaN(val)) {
+                    if (val < 0) this.value = 0;
+                    if (val > 20) this.value = 20;
+                }
+            }
+        });
+
+        // Sélection au focus
+        input.addEventListener('focus', function () {
+            this.select();
+        });
+
+        // Mise à jour du statut et de la moyenne
+        input.addEventListener('input', function () {
+            const inscriptionId = this.dataset.inscription;
+            majStatutEtMoyenne(inscriptionId);
+            majStatsGlobales();
+        });
+    });
+
+    // ============================================================
+    // CALCUL DE LA MOYENNE EN TEMPS RÉEL
+    // ============================================================
+    function calculerMoyenne(inscriptionId) {
+        const inputClasse = document.querySelector(
+            `input[name="note_${inscriptionId}_classe"]`
+        );
+        const inputCompo = document.querySelector(
+            `input[name="note_${inscriptionId}_compo"]`
+        );
+        const spanMoyenne = document.getElementById(`moyenne_${inscriptionId}`);
+
+        if (!inputClasse || !inputCompo || !spanMoyenne) return null;
+
+        const noteClasse = parseFloat(inputClasse.value) || 0;
+        const noteCompo = parseFloat(inputCompo.value) || 0;
+
+        if (!inputClasse.value && !inputCompo.value) {
+            spanMoyenne.textContent = '—';
+            spanMoyenne.className = 'badge bg-secondary moyenne-affichee';
+            return null;
+        }
+
+        // ✅ FIX: arrondi cohérent avec Decimal.quantize côté serveur
+        const moyenne = Math.round(((noteCompo * 2 + noteClasse) / 3) * 100) / 100;
+        spanMoyenne.textContent = moyenne.toFixed(2);
+
+        if (moyenne >= 16) {
+            spanMoyenne.className = 'badge bg-success moyenne-affichee';
+        } else if (moyenne >= 12) {
+            spanMoyenne.className = 'badge bg-primary moyenne-affichee';
+        } else if (moyenne >= 10) {
+            spanMoyenne.className = 'badge bg-warning text-dark moyenne-affichee';
+        } else {
+            spanMoyenne.className = 'badge bg-danger moyenne-affichee';
+        }
+
+        return moyenne;
+    }
+
+    // ============================================================
+    // MISE À JOUR DU STATUT D'UNE LIGNE
+    // ============================================================
+    function majStatutEtMoyenne(inscriptionId) {
+        const inputClasse = document.querySelector(
+            `input[name="note_${inscriptionId}_classe"]`
+        );
+        const inputCompo = document.querySelector(
+            `input[name="note_${inscriptionId}_compo"]`
+        );
+
+        if (!inputClasse || !inputCompo) return;
+
+        const row = inputClasse.closest('tr');
+        const statusCell = row.querySelector('td:last-child');
+
+        const noteSaisie = inputCompo.value.trim() !== '';
+        const classeSaisie = inputClasse.value.trim() !== '';
+
+        if (noteSaisie || classeSaisie) {
+            statusCell.innerHTML = '<span class="badge bg-success"><i class="fas fa-check"></i> Saisi</span>';
+        } else {
+            statusCell.innerHTML = '<span class="badge bg-secondary"><i class="fas fa-minus"></i> Vide</span>';
+        }
+
+        calculerMoyenne(inscriptionId);
+    }
+
+    // ============================================================
+    // STATS GLOBALES (nb saisies, vides, moyenne classe)
+    // ============================================================
+    function majStatsGlobales() {
+        const allInputs = document.querySelectorAll('.note-input');
+        const inscriptionIds = new Set();
+        allInputs.forEach(input => {
+            inscriptionIds.add(input.dataset.inscription);
+        });
+
+        const nbLignes = inscriptionIds.size;
+        let nbSaisies = 0;
+        const moyennes = [];
+
+        inscriptionIds.forEach(id => {
+            const inputClasse = document.querySelector(`input[name="note_${id}_classe"]`);
+            const inputCompo = document.querySelector(`input[name="note_${id}_compo"]`);
+
+            if (!inputClasse || !inputCompo) return;
+
+            const classeSaisie = inputClasse.value.trim() !== '';
+            const compoSaisie = inputCompo.value.trim() !== '';
+
+            if (classeSaisie || compoSaisie) {
+                nbSaisies++;
+                const moy = calculerMoyenne(id);
+                if (moy !== null) moyennes.push(moy);
+            }
+        });
+
+        const spanSaisies = document.getElementById('nb-saisies');
+        const spanVides = document.getElementById('nb-vides');
+        const spanMoyClasse = document.getElementById('moyenne-classe');
+
+        if (spanSaisies) spanSaisies.textContent = nbSaisies;
+        if (spanVides) spanVides.textContent = nbLignes - nbSaisies;
+
+        if (spanMoyClasse) {
+            if (moyennes.length > 0) {
+                const moy = moyennes.reduce((a, b) => a + b, 0) / moyennes.length;
+                spanMoyClasse.textContent = moy.toFixed(2) + '/20';
+            } else {
+                spanMoyClasse.textContent = '—';
+            }
+        }
+    }
+
+    // ============================================================
+    // BOUTON VIDER
+    // ============================================================
+    const btnVider = document.getElementById('btnVider');
+    if (btnVider) {
+        btnVider.addEventListener('click', function () {
+            if (!confirm("Voulez-vous vraiment vider tous les champs de notes ?")) return;
+
+            document.querySelectorAll('.note-input').forEach(function (input) {
+                input.value = '';
+                input.classList.remove('is-invalid');
+                input.removeAttribute('data-exists');
+            });
+
+            document.querySelectorAll('tbody tr').forEach(function (row) {
+                const statusCell = row.querySelector('td:last-child');
+                if (statusCell) {
+                    statusCell.innerHTML = '<span class="badge bg-secondary"><i class="fas fa-minus"></i> Vide</span>';
+                }
+            });
+
+            document.querySelectorAll('.moyenne-affichee').forEach(function (span) {
+                span.textContent = '—';
+                span.className = 'badge bg-secondary moyenne-affichee';
+            });
+
+            majStatsGlobales();
+
+            const firstInput = document.querySelector('.note-input');
+            if (firstInput) firstInput.focus();
+        });
+    }
+
+    // ============================================================
+    // CALCUL INITIAL AU CHARGEMENT
+    // ============================================================
+    inputs.forEach(input => {
+        majStatutEtMoyenne(input.dataset.inscription);
+    });
+    majStatsGlobales();
+
+    // ============================================================
+    // CLASSE CHANGE → VIDER LA MATIÈRE
+    // ============================================================
+    const classeSelect = document.querySelector('select[name="classe"]');
+    const matiereSelect = document.querySelector('select[name="matiere"]');
+
+    if (classeSelect) {
+        classeSelect.addEventListener('change', function () {
+            if (matiereSelect) matiereSelect.value = '';
+            this.form.submit();
+        });
+    }
+});
+</script>
+
+<style>
+.note-input {
+    font-weight: bold;
+    text-align: center;
+}
+.note-input:focus {
+    border-color: #8e44ad;
+    box-shadow: 0 0 0 0.2rem rgba(142, 68, 173, 0.25);
+}
+.note-input[data-exists="true"] {
+    background-color: #d1e7dd;
+}
+</style>
+{% endblock %}

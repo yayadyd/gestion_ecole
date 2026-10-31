@@ -1,0 +1,316 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Notes 2e cycle{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-star me-2 text-primary"></i>
+        Liste des notes - 2e Cycle
+        <span class="badge bg-primary ms-2">{{ page_obj.paginator.count }}</span>
+    </h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{% url 'fondamental:cycle2_saisie_notes' %}" class="btn btn-success">
+            <i class="fas fa-edit"></i> Saisir les notes
+        </a>
+        <a href="{% url 'fondamental:cycle1_notes_list' %}" class="btn btn-outline-info">
+            <i class="fas fa-exchange-alt"></i> Notes 1er cycle
+        </a>
+        <a href="{% url 'fondamental:notes_choix' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Un seul formulaire englobe TOUS les filtres -->
+<form method="get" class="row g-3" id="filtreForm">
+    <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Recherche</label>
+        <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input type="text" name="search" class="form-control"
+                placeholder="Rechercher un élève..." value="{{ search }}">
+        </div>
+    </div>
+
+    <!-- Classe : rechargement automatique -->
+    <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Classe</label>
+        <select name="classe" class="form-select"
+                onchange="this.form.submit()">
+            <option value="">Toutes classes</option>
+            {% for classe in classes %}
+            <option value="{{ classe.idClasse }}"
+                    {% if classe_filter == classe.idClasse|stringformat:"s" %}selected{% endif %}>
+                {{ classe.nomClasse }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Matière : dépend de la classe -->
+    <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Matière</label>
+        <select name="matiere" class="form-select"
+                {% if classe_sans_matieres %}disabled{% endif %}>
+            <option value="">Toutes matières</option>
+            {% for matiere in matieres %}
+            <option value="{{ matiere.idMatiere }}"
+                    {% if matiere_filter == matiere.idMatiere|stringformat:"s" %}selected{% endif %}>
+                {{ matiere.nomMatiere }}
+            </option>
+            {% endfor %}
+        </select>
+        {% if classe_sans_matieres %}
+        <small class="text-danger d-block mt-1">
+            <i class="fas fa-exclamation-triangle me-1"></i>
+            Aucune matière associée.
+            <a href="{% url 'fondamental:matiere_classe_list' %}?classe={{ classe_filter }}" class="alert-link">Configurer</a>
+        </small>
+        {% endif %}
+    </div>
+
+    <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Année</label>
+        <select name="annee" class="form-select">
+            <option value="">Toutes années</option>
+            {% for annee in annees_scolaires %}
+            <option value="{{ annee.idAnneeScolaire }}"
+                    {% if annee_filter == annee.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                {{ annee.anneeScolaire }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Trimestre</label>
+        <select name="trimestre" class="form-select">
+            <option value="">Tous trimestres</option>
+            {% for key, value in trimestres.items %}
+            <option value="{{ key }}" {% if trimestre_filter == key %}selected{% endif %}>
+                {{ value }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-filter"></i> Filtrer
+        </button>
+        {% if search or classe_filter or matiere_filter or annee_filter or trimestre_filter %}
+        {# ✅ FIX: route 'note_list' (n'existe pas 'cycle2_note_list') #}
+        <a href="{% url 'fondamental:note_list' %}" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Réinitialiser
+        </a>
+        {% endif %}
+    </div>
+</form>
+
+<!-- Résultats -->
+<div class="card">
+    <div class="card-body">
+        {% if notes %}
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Matière</th>
+                        <th>Trimestre</th>
+                        <th class="text-center">Note /20</th>
+                        <th class="text-center">Note classe</th>
+                        <th>Année</th>
+                        <th class="text-center no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for note in notes %}
+                    <tr>
+                        <td>{{ forloop.counter0|add:page_obj.start_index }}</td>
+                        <td>
+                            <a href="{% url 'fondamental:eleve_detail' note.eleve.pk %}">
+                                {{ note.eleve.prenomEleve }} {{ note.eleve.nomEleve }}
+                            </a>
+                            <br><small class="text-muted">{{ note.eleve.matricule }}</small>
+                        </td>
+                        <td>
+                            {# ✅ FIX: utilise l'inscription de l'année concernée #}
+                            {% if note.inscription_courante %}
+                                <span class="badge bg-primary">
+                                    {{ note.inscription_courante.classe.nomClasse }}
+                                </span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ note.matiere.nomMatiere }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ note.evaluation.nomEvaluation }}</span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if note.note >= 16 %}bg-success{% elif note.note >= 12 %}bg-primary{% elif note.note >= 10 %}bg-warning{% else %}bg-danger{% endif %} fs-6">
+                                {{ note.note }}/20
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            {% if note.noteClasse %}
+                                <span class="badge bg-secondary">{{ note.noteClasse }}/20</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ note.anneeScolaire }}</td>
+                        <td class="text-center no-print">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:note_update' note.pk %}"
+                                   class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'fondamental:note_delete' note.pk %}"
+                                   class="btn btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <div class="text-muted text-center mt-2">
+            <small>
+                Affichage de {{ page_obj.start_index }} à {{ page_obj.end_index }}
+                sur {{ page_obj.paginator.count }} notes
+            </small>
+        </div>
+
+        {% else %}
+        <div class="text-center py-4">
+            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Aucune note trouvée</p>
+            {% if search or classe_filter or matiere_filter or annee_filter or trimestre_filter %}
+            {# ✅ FIX: route 'note_list' #}
+            <a href="{% url 'fondamental:note_list' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-times"></i> Réinitialiser les filtres
+            </a>
+            {% else %}
+            <a href="{% url 'fondamental:note_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Ajouter une note
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+document.addEventListener('DOMContentLoaded', function() {
+    // ... votre code existant (autocomplete search) ...
+
+    // ============================================================
+    // ✅ FIX : Vider la matière quand la classe change
+    // ============================================================
+    const classeSelect = document.querySelector('select[name="classe"]');
+    const matiereSelect = document.querySelector('select[name="matiere"]');
+
+    if (classeSelect && matiereSelect) {
+        classeSelect.addEventListener('change', function() {
+            // Vider la matière AVANT que le formulaire ne soit soumis
+            matiereSelect.value = '';
+        });
+    }
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // ============================================================
+    // AUTOCOMPLETE RECHERCHE
+    // ============================================================
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+
+    // ============================================================
+    // ✅ FIX : CLASSE CHANGE → on vide la matière PUIS on soumet
+    // ============================================================
+    const classeSelect = document.querySelector('select[name="classe"]');
+    const matiereSelect = document.querySelector('select[name="matiere"]');
+
+    if (classeSelect) {
+        classeSelect.addEventListener('change', function() {
+            // 1. Vider la matière (car elle peut ne plus exister dans la nouvelle classe)
+            if (matiereSelect) {
+                matiereSelect.value = '';
+            }
+            // 2. Soumettre le formulaire
+            this.form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,171 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Classes{% endblock %}
+
+{% block content %}
+
+<!-- En-tête avec bouton créer -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="fas fa-chalkboard me-2"></i>
+        Classes
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'fondamental:frais_classe_annee_edit' %}{% if annee_filtre %}?annee={{ annee_filtre }}{% endif %}" class="btn btn-outline-success">
+            <i class="fas fa-money-bill-wave"></i> Gérer les frais
+        </a>
+        <a href="{% url 'fondamental:classe_create' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvelle classe
+        </a>
+    </div>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:classe_list' %}?cycle=1er{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+            <span class="badge bg-info ms-1">{{ nb_classes_1er }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:classe_list' %}?cycle=2e{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+            <span class="badge bg-primary ms-1">{{ nb_classes_2e }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:classe_list' %}{% if annee_filtre %}?annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-list me-1"></i> Toutes
+            <span class="badge bg-secondary ms-1">{{ nb_classes_total }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- ✅ FILTRE ANNÉE SCOLAIRE -->
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="get" class="d-flex align-items-center gap-2">
+            {% if cycle_filtre %}
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+            {% endif %}
+            <label for="annee" class="form-label mb-0 fw-bold text-muted">
+                <i class="fas fa-calendar-alt me-1"></i> Année scolaire :
+            </label>
+            <select name="annee" id="annee" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                {% for a in annees %}
+                <option value="{{ a.idAnneeScolaire }}" {% if annee_filtre == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                    {{ a.anneeScolaire }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des classes -->
+<div class="row">
+    {% for classe in classes %}
+    <div class="col-md-4 mb-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">
+                    {{ classe.nomClasse }}
+                    <span class="badge {% if classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-1">
+                        {{ classe.get_cycle_display }}
+                    </span>
+                </h5>
+                <p class="card-text text-muted">
+                    <i class="fas fa-user-graduate"></i>
+                    {{ classe.nb_eleves_annee }} élève{{ classe.nb_eleves_annee|pluralize }}
+                    <small class="text-muted">({{ annee_selectionnee_nom }})</small>
+                </p>
+
+                <!-- ============================================================ -->
+                <!-- ✅ FRAIS : Variables passées par la vue (classe.frais_...)    -->
+                <!-- ============================================================ -->
+                <p class="card-text small text-muted mb-2">
+                    <i class="fas fa-money-bill-wave me-1"></i>
+                    <strong>Inscription :</strong>
+                    {{ classe.frais_inscription|floatformat:0 }} FCFA
+                    
+                    <br>
+                    <i class="fas fa-graduation-cap me-1"></i>
+                    <strong>Scolarité annuelle :</strong>
+                    {{ classe.frais_scolarite|floatformat:0 }} FCFA
+                    
+                    {% if classe.frais_scolarite %}
+                        {% if mode_frais_scolarite == 'mensuel' %}
+                            <span class="badge bg-info ms-1" title="9 versements">9 versements</span>
+                        {% elif mode_frais_scolarite == 'trimestriel' %}
+                            <span class="badge bg-info ms-1">3 trimestres</span>
+                        {% elif mode_frais_scolarite == 'tranches' %}
+                            <span class="badge bg-info ms-1">{{ nombre_tranches }} tranches</span>
+                        {% elif mode_frais_scolarite == 'annuel' %}
+                            <span class="badge bg-info ms-1">Annuel</span>
+                        {% elif mode_frais_scolarite == 'unique' %}
+                            <span class="badge bg-secondary ms-1">Unique</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="badge bg-danger ms-1">Non configuré</span>
+                    {% endif %}
+                </p>
+
+                <div class="d-flex gap-2 flex-wrap">
+                    <a href="{% url 'fondamental:eleve_list_filtered' %}?classe={{ classe.idClasse }}{% if cycle_filtre %}&cycle={{ cycle_filtre }}{% endif %}" class="btn btn-sm btn-info" title="Voir les élèves">
+                        <i class="fas fa-users"></i> Élèves
+                    </a>
+                    <!-- ✅ BOUTON CARTES AVEC SÉLECTEUR DE FOND -->
+                    <div class="input-group input-group-sm" style="width: 140px;">
+                        <select class="form-select" id="fond_{{ classe.idClasse }}">
+                            <option value="fond_blanc.jpg">Fond blanc</option>
+                            <option value="carte_scolaire1.jpg">Fond 1</option>
+                            <option value="carte_scolaire2.jpg">Fond 2</option>
+                            <option value="carte_scolaire3.jpg">Fond 3</option>
+                            <option value="carte_scolaire4.jpg">Fond 4</option>
+                        </select>
+                        <button class="btn btn-danger" 
+                                onclick="window.location.href='{% url 'fondamental:carte_scolaire_classe_pdf' classe.idClasse annee_filtre %}?couleur=%232980b9&fond=' + document.getElementById('fond_{{ classe.idClasse }}').value">
+                            <i class="fas fa-id-card"></i>
+                        </button>
+                    </div>
+                    {% if classe.cycle == '1er' %}
+                    <a href="{% url 'fondamental:cycle1_bulletins_index' %}" class="btn btn-sm btn-outline-primary" title="Bulletins">
+                        <i class="fas fa-file-alt"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'fondamental:cycle2_bulletins_index' %}" class="btn btn-sm btn-outline-primary" title="Bulletins">
+                        <i class="fas fa-file-alt"></i>
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'fondamental:classe_update' classe.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-sm btn-warning" title="Modifier">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'fondamental:classe_delete' classe.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-sm btn-danger" title="Supprimer">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            Aucune classe enregistrée
+            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}
+            {% if annee_filtre %}pour cette année scolaire{% endif %}.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% endblock %}

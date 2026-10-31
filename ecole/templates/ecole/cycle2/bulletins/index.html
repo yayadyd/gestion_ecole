@@ -1,0 +1,213 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Bulletins de notes{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-file-alt me-2"></i>
+        Bulletins de notes
+    </h4>
+    <div>
+        <form method="get" class="d-flex gap-2">
+            <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% for annee in annees_scolaires %}
+                <option value="{{ annee.anneeScolaire }}" {% if annee.anneeScolaire == annee_encours %}selected{% endif %}>
+                    {{ annee.anneeScolaire }}
+                </option>
+                {% endfor %}
+            </select>
+            <a href="{% url 'fondamental:cycle2_bulletins_index' %}" class="btn btn-secondary btn-sm">
+                <i class="fas fa-sync"></i>
+            </a>
+        </form>
+    </div>
+</div>
+
+<div class="alert alert-info">
+    <i class="fas fa-calendar-alt me-2"></i>
+    <strong>Année scolaire :</strong> {{ annee_encours }}
+</div>
+
+<div class="row">
+    <!-- Carte par trimestre -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Par trimestre</h5>
+            </div>
+            <div class="card-body">
+                <p>Voir les bulletins par trimestre</p>
+                <div class="list-group">
+                    {% for key, value in trimestres.items %}
+                    <a href="{% url 'fondamental:cycle2_bulletins_classe' annee_encours key %}"
+                       class="list-group-item list-group-item-action">
+                        <i class="fas fa-file-alt me-2"></i>
+                        {{ value }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte par classe -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-chalkboard me-2"></i>Par classe</h5>
+            </div>
+            <div class="card-body">
+                <p>Sélectionner une classe</p>
+                <div class="list-group">
+                    {% for classe in classes %}
+                    <a href="{% url 'fondamental:cycle2_bulletins_classe_filtre' annee_encours 'Premier trimestre' classe.idClasse %}"
+                       class="list-group-item list-group-item-action">
+                        <i class="fas fa-users me-2"></i>
+                        {{ classe.nomClasse }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Carte actions -->
+    <div class="col-md-4 mb-3">
+        <div class="card h-100">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-tools me-2"></i>Actions</h5>
+            </div>
+            <div class="card-body">
+                <p>Gérer les bulletins</p>
+                <div class="list-group">
+                    <div class="list-group-item">
+                        <strong>Calculer les moyennes</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% for key, value in trimestres.items %}
+                            <a href="{% url 'fondamental:cycle2_calculer_moyennes' annee_encours key %}"
+                               class="btn btn-sm btn-primary">
+                                {{ value }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <strong>Classer les élèves</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% for key, value in trimestres.items %}
+                            <a href="{% url 'fondamental:cycle2_classer_eleves' annee_encours key %}"
+                               class="btn btn-sm btn-warning">
+                                {{ value }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="list-group-item">
+                        <strong>Exporter PDF</strong>
+                        <div class="d-flex flex-wrap gap-1 mt-2">
+                            {% for key, value in trimestres.items %}
+                            <a href="{% url 'fondamental:cycle2_exporter_bulletins_pdf' annee_encours key %}"
+                               class="btn btn-sm btn-danger">
+                                {{ value }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header bg-info text-white">
+        <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Statistiques par année</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Année scolaire</th>
+                        <th>Inscriptions</th>
+                        <th>Bulletins générés</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stat in stats_par_annee %}
+                    <tr>
+                        <td><strong>{{ stat.annee.anneeScolaire }}</strong></td>
+                        <td>{{ stat.nb_inscriptions }}</td>
+                        <td>{{ stat.nb_resultats }}</td>
+                        <td>
+                            <a href="{% url 'fondamental:cycle2_bulletins_index' %}?annee={{ stat.annee.anneeScolaire }}"
+                               class="btn btn-sm btn-primary">
+                                <i class="fas fa-eye"></i> Voir
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted">Aucune donnée disponible</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-3">
+    <div class="card-header bg-secondary text-white">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Derniers bulletins générés</h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Trimestre</th>
+                        <th>Moyenne</th>
+                        <th>Date</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resultat in derniers_resultats %}
+                    <tr>
+                        <td>{{ resultat.inscription.eleve }}</td>
+                        <td>{{ resultat.inscription.classe }}</td>
+                        <td>{{ resultat.trimestre }}</td>
+                        <td>
+                            <strong class="{% if resultat.moyenne_generale >= 12 %}text-success{% else %}text-danger{% endif %}">
+                                {{ resultat.moyenne_generale }}
+                            </strong>
+                        </td>
+                        <td>{{ resultat.date_calcul|date:"d/m/Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'fondamental:cycle2_bulletin_eleve' resultat.inscription.eleve.id annee_encours resultat.trimestre %}"
+                               class="btn btn-sm btn-info">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted">
+                            Aucun bulletin généré pour {{ annee_encours }}
+                            <a href="{% url 'fondamental:cycle2_calculer_moyennes' annee_encours 'Premier trimestre' %}" class="ms-2">
+                                Calculer les moyennes
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

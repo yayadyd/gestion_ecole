@@ -1,0 +1,133 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Notes & Saisie{% endblock %}
+
+{% block content %}
+
+<div class="text-center mb-4">
+    <h4 class="mb-2">
+        <i class="fas fa-star me-2"></i>
+        Notes & Saisie
+    </h4>
+    <p class="text-muted">Choisissez un cycle pour accéder à la saisie ou à la consultation des notes</p>
+</div>
+
+<div class="row justify-content-center">
+    <!-- 1er Cycle -->
+    <div class="col-md-5 mb-3">
+        <a href="{% url 'fondamental:cycle1_saisie_notes' %}" class="text-decoration-none d-block">
+            <div class="card card-stats bg-info text-white h-100">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-calendar-check fa-4x mb-3"></i>
+                    <h3>1er Cycle</h3>
+                    <p class="mb-0 fw-bold">Saisie mensuelle</p>
+                    <small class="opacity-75">Une composition par mois, sans coefficient</small>
+                    <hr class="my-3 border-white opacity-50">
+                    <span class="btn btn-light btn-sm">
+                        <i class="fas fa-edit"></i> Saisir les notes
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+
+    <!-- 2e Cycle -->
+    <div class="col-md-5 mb-3">
+        <a href="{% url 'fondamental:cycle2_saisie_notes' %}" class="text-decoration-none d-block">
+            <div class="card card-stats bg-primary text-white h-100">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-edit fa-4x mb-3"></i>
+                    <h3>2e Cycle</h3>
+                    <p class="mb-0 fw-bold">Saisie trimestrielle</p>
+                    <small class="opacity-75">Note de classe + composition, avec coefficients</small>
+                    <hr class="my-3 border-white opacity-50">
+                    <span class="btn btn-light btn-sm">
+                        <i class="fas fa-edit"></i> Saisir les notes
+                    </span>
+                </div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<!-- Accès rapides -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-10">
+        <div class="card">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0"><i class="fas fa-list me-2"></i> Consulter les notes</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <a href="{% url 'fondamental:cycle1_notes_list' %}" class="text-decoration-none d-block">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-calendar-check fa-2x text-info mb-2"></i>
+                                    <h6 class="mb-1">Notes 1er Cycle</h6>
+                                    <small class="text-muted">Liste des compositions mensuelles</small>
+                                    <div class="mt-2">
+                                        <span class="btn btn-sm btn-info">
+                                            <i class="fas fa-list"></i> Voir
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="{% url 'fondamental:note_list' %}" class="text-decoration-none d-block">
+                            <div class="card bg-light h-100">
+                                <div class="card-body text-center">
+                                    <i class="fas fa-file-alt fa-2x text-primary mb-2"></i>
+                                    <h6 class="mb-1">Notes 2e Cycle</h6>
+                                    <small class="text-muted">Liste des notes trimestrielles</small>
+                                    <div class="mt-2">
+                                        <span class="btn btn-sm btn-primary">
+                                            <i class="fas fa-list"></i> Voir
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <hr class="my-3">
+
+                <div class="text-center">
+                    <a href="{% url 'fondamental:evaluation_list' %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-tasks me-1"></i> Gérer les évaluations (2e cycle)
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aide contextuelle -->
+<div class="row justify-content-center mt-3">
+    <div class="col-md-10">
+        <div class="alert alert-light border">
+            <h6 class="mb-2"><i class="fas fa-info-circle text-primary me-2"></i> Comment ça marche ?</h6>
+            <ul class="mb-0 small">
+                <li>
+                    <strong>1er Cycle</strong> (1ère à 6ème Année) :
+                    saisie de <strong>compositions mensuelles</strong> d'Octobre à Juin,
+                    <strong>sans coefficients</strong>.
+                    La moyenne est la moyenne simple des notes.
+                </li>
+                <li>
+                    <strong>2e Cycle</strong> (7ème à 9ème Année) :
+                    saisie <strong>trimestrielle</strong> avec
+                    <strong>note de classe (sur 20)</strong> +
+                    <strong>composition (sur 20, comptée ×2)</strong> +
+                    <strong>coefficients</strong> par matière.
+                    Moyenne matière = (NoteClasse + NoteCompo×2) / 3.
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

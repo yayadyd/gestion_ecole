@@ -1,0 +1,92 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Supprimer paiement{% endblock %}
+
+{% block lycee_content %}
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-exclamation-triangle me-1"></i>
+                    Confirmer la suppression
+                </h5>
+            </div>
+            <div class="card-body">
+                <p>Voulez-vous vraiment supprimer ce paiement ?</p>
+
+                <table class="table table-sm mb-3">
+                    <tr>
+                        <th style="width: 40%;">Élève :</th>
+                        <td>
+                            <strong>{{ object.inscription.eleve.nom }} {{ object.inscription.eleve.prenom }}</strong>
+                            <br>
+                            <small class="text-muted">
+                                <code>{{ object.inscription.eleve.matricule }}</code> —
+                                {{ object.inscription.classe.nom }}
+                            </small>
+                        </td>
+                    </tr>
+                    <!-- ✅ FIX: remplacer get_type_paiement_display par la logique booléenne -->
+                    <tr>
+                        <th>Type :</th>
+                        <td>
+                            {% if object.est_inscription %}
+                                <span class="badge bg-info">
+                                    <i class="fas fa-file-invoice"></i> Frais d'inscription
+                                </span>
+                            {% else %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-graduation-cap"></i> Scolarité
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Montant :</th>
+                        <td class="text-danger"><strong>{{ object.montant|floatformat:0 }} FCFA</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Date :</th>
+                        <td>{{ object.date_paiement|date:"d/m/Y" }}</td>
+                    </tr>
+                    {% if object.mois %}
+                    <tr>
+                        <th>Mois :</th>
+                        <td>
+                            {{ object.get_mois_display }} {{ object.annee_paiement }}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% if object.observation %}
+                    <tr>
+                        <th>Observation :</th>
+                        <td><small class="text-muted">{{ object.observation }}</small></td>
+                    </tr>
+                    {% endif %}
+                </table>
+
+                <div class="alert alert-warning small">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Cette action est irréversible. Le montant payé sera retiré du total.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'lycee:paiement_detail' object.inscription.id_inscription %}"
+                           class="btn btn-secondary">
+                            Annuler
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash"></i> Supprimer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

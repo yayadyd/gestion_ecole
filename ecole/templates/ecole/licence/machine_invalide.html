@@ -1,0 +1,79 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Machine non autorisée</title>
+
+    <link rel="icon" type="image/png" href="{% static 'img/icon_app.jpg' %}">
+
+    <link href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+
+    <style>
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #c0392b 0%, #8e2b21 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+            padding: 20px;
+        }
+        .card-blocage { border-radius: 15px; max-width: 600px; width: 100%; }
+        .machine-id {
+            font-family: monospace;
+            font-size: 1rem;
+            background: #f8f9fa;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            word-break: break-all;
+            user-select: all;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card card-blocage mx-auto">
+            <div class="card-body p-5 text-center">
+                <div class="mb-3" style="font-size: 4rem; color: #c0392b;">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+
+                <h2 class="text-danger mb-3">Machine non autorisée</h2>
+
+                <p class="lead mb-4">
+                    Cette licence a été activée sur une autre machine.
+                </p>
+
+                <div class="alert alert-danger text-start">
+                    <h6 class="mb-2">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Aucune donnée n'a été modifiée
+                    </h6>
+                    <p class="mb-0 small">
+                        Cette application est liée à une machine spécifique.
+                        Si vous avez changé de matériel ou restauré vos données
+                        sur un nouvel ordinateur, contactez le fournisseur pour
+                        réactiver votre licence.
+                    </p>
+                </div>
+
+                <div class="alert alert-info text-start small">
+                    <strong>Identifiant de cette machine :</strong><br>
+                    <code>{{ licence.empreinte_machine|slice:":16" }}...</code>
+                </div>
+
+                <p class="mb-1"><strong>Contactez le fournisseur :</strong></p>
+                <p class="mb-0">
+                    📞 +223 73 40 91 73<br>
+                    ✉️ yayadyd@gmail.com<br>
+                    Yaya DEMBELE, gestionnaire informaticien
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

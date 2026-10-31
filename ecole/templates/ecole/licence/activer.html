@@ -1,0 +1,280 @@
+{% load static %}
+{# templates/ecole/licence/activer.html — page autonome (n'étend aucun gabarit) #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Activation de la licence — Mali Kalanso</title>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial,sans-serif;background:#f4f6f9;margin:0;padding:24px;color:#222}
+
+    .carte{
+      max-width:640px;
+      margin:0 auto;
+      background:#fff;
+      border-radius:10px;
+      padding:28px;
+      box-shadow:0 2px 12px rgba(0,0,0,.08)
+    }
+
+    /* ================================================
+       ✅ EN-TÊTE : LOGO + NOM DE L'APPLICATION
+       ================================================ */
+    .app-header{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding-bottom:18px;
+      margin-bottom:22px;
+      border-bottom:1px solid #e5e8ec;
+    }
+    .app-header .sidebar-logo{
+      width:52px;
+      height:52px;
+      border-radius:10px;
+      object-fit:cover;
+      box-shadow:0 2px 6px rgba(0,0,0,.10);
+      flex-shrink:0;
+    }
+    .app-header .sidebar-brand-text{
+      margin:0;
+      font-size:1.25rem;
+      font-weight:700;
+      color:#1f3a93;
+      line-height:1.15;
+    }
+    .app-header .sidebar-brand-text small{
+      display:block;
+      font-size:.72rem;
+      font-weight:500;
+      color:#6b7280;
+      letter-spacing:.4px;
+      text-transform:uppercase;
+      margin-top:2px;
+    }
+
+    h1{margin-top:0;font-size:1.4rem;color:#1f3a93}
+
+    /* ================================================
+       ✅ BLOC CODE MACHINE + BOUTON COPIER
+       ================================================ */
+    .zone-code{
+      display:flex;
+      align-items:stretch;
+      gap:8px;
+      margin:10px 0 6px;
+    }
+    .code{
+      flex:1;
+      font-family:Consolas,monospace;
+      font-size:1.35rem;
+      letter-spacing:1.5px;
+      background:#eef3fb;
+      border:1px dashed #6b8fd6;
+      border-radius:8px;
+      padding:14px 12px;
+      text-align:center;
+      user-select:all;
+      color:#1f3a93;
+      font-weight:600;
+      white-space:nowrap;
+      overflow-x:auto;
+    }
+    .btn-copier{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      background:#1f6feb;
+      color:#fff;
+      border:0;
+      border-radius:8px;
+      padding:0 16px;
+      font-size:.95rem;
+      font-weight:600;
+      cursor:pointer;
+      transition:all .18s ease;
+      white-space:nowrap;
+    }
+    .btn-copier:hover{
+      background:#1856b8;
+    }
+    .btn-copier.copie{
+      background:#27ae60;
+    }
+    .btn-copier .fa-regular,
+    .btn-copier .fa-solid{
+      font-size:1rem;
+    }
+    .copie-message{
+      font-size:.85rem;
+      color:#27ae60;
+      font-weight:500;
+      opacity:0;
+      transition:opacity .25s ease;
+      height:18px;
+    }
+    .copie-message.visible{
+      opacity:1;
+    }
+
+    textarea{width:100%;min-height:130px;box-sizing:border-box;font-family:Consolas,monospace;font-size:.85rem;padding:10px;border:1px solid #bbb;border-radius:6px}
+    button[type=submit]{background:#1f6feb;color:#fff;border:0;border-radius:6px;padding:10px 18px;font-size:1rem;cursor:pointer}
+    button[type=submit]:hover{background:#1856b8}
+    .ok{background:#e7f6ec;border:1px solid #9bd3ae;padding:10px;border-radius:6px}
+    .msg{padding:10px;border-radius:6px;margin-bottom:12px}
+    .msg.success{background:#e7f6ec;border:1px solid #9bd3ae}
+    .msg.error{background:#fdeaea;border:1px solid #e8a3a3}
+    small{color:#666}
+    @media (max-width: 480px) {
+    .zone-code { flex-direction: column; }
+    .btn-copier { width: 100%; justify-content: center; padding: 12px; }
+    }
+  </style>
+
+  <!-- ✅ Font Awesome pour les icônes -->
+  <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+</head>
+<body>
+<div class="carte">
+
+  <!-- ============================================ -->
+  <!-- ✅ EN-TÊTE APPLICATION                        -->
+  <!-- ============================================ -->
+  <div class="app-header">
+    <img src="{% static 'img/icon_app.jpg' %}" alt="Mali Kalanso" class="sidebar-logo">
+    <h5 class="sidebar-brand-text">
+      Mali Kalanso
+      <small>Gestion Scolaire</small>
+    </h5>
+  </div>
+
+  <h1>Activation de la licence</h1>
+
+  {% for message in messages %}
+    <div class="msg {{ message.tags }}">{{ message }}</div>
+  {% endfor %}
+
+  {% if licence_signee %}
+    <p class="ok">
+      ✅ Licence active — <strong>{{ licence_signee.client }}</strong>
+      {% if licence_signee.expire %}, valable jusqu'au {{ licence_signee.expire|date:"d/m/Y" }}{% else %} (illimitée){% endif %}.
+    </p>
+  {% endif %}
+
+  <!-- ============================================ -->
+  <!-- ✅ CODE MACHINE + BOUTON COPIER               -->
+  <!-- ============================================ -->
+  <p><strong>1.</strong> Communiquez ce <strong>code machine</strong> au vendeur :</p>
+
+  <div class="zone-code">
+    <div class="code" id="codeMachine">{{ code_machine }}</div>
+    <button type="button"
+            class="btn-copier"
+            id="btnCopier"
+            title="Copier le code machine">
+      <i class="fa-regular fa-copy"></i>
+      <span id="btnCopierLabel">Copier</span>
+    </button>
+  </div>
+  <p class="copie-message" id="copieMessage"></p>
+
+  <p style="margin-top:18px;"><strong>2.</strong> Collez ci-dessous la clé de licence reçue :</p>
+  <form method="post">
+    {% csrf_token %}
+    <textarea name="cle" placeholder="GE1.…" required></textarea>
+    <p><button type="submit">Activer</button></p>
+  </form>
+  <small>La clé est liée à cette machine. Si vous changez d'ordinateur, demandez une nouvelle clé avec le nouveau code machine.</small>
+</div>
+
+<!-- ============================================================ -->
+<!-- ✅ SCRIPT : copie du code machine                             -->
+<!-- ============================================================ -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const codeEl       = document.getElementById('codeMachine');
+  const btnCopier    = document.getElementById('btnCopier');
+  const btnLabel     = document.getElementById('btnCopierLabel');
+  const copieMessage = document.getElementById('copieMessage');
+
+  if (!codeEl || !btnCopier) return;
+
+  function afficherMessage(texte, succes) {
+    if (!copieMessage) return;
+    copieMessage.textContent = texte;
+    copieMessage.style.color = succes ? '#27ae60' : '#e74c3c';
+    copieMessage.classList.add('visible');
+    setTimeout(() => copieMessage.classList.remove('visible'), 2500);
+  }
+
+  function changerIcone(succes) {
+    const i = btnCopier.querySelector('i');
+    if (i) {
+      i.className = succes ? 'fa-solid fa-check' : 'fa-solid fa-triangle-exclamation';
+    }
+    btnCopier.classList.toggle('copie', succes);
+  }
+
+  function restaurerBouton() {
+    const i = btnCopier.querySelector('i');
+    if (i) i.className = 'fa-regular fa-copy';
+    if (btnLabel) btnLabel.textContent = 'Copier';
+    btnCopier.classList.remove('copie');
+  }
+
+  // ✅ Méthode 1 : API Clipboard moderne
+  function copierAvecClipboard(texte) {
+    if (navigator.clipboard && window.isSecureContext) {
+      return navigator.clipboard.writeText(texte);
+    }
+    return Promise.reject('Clipboard API indisponible');
+  }
+
+  // ✅ Méthode 2 : fallback (textarea + execCommand)
+  function copierAvecFallback(texte) {
+    const ta = document.createElement('textarea');
+    ta.value = texte;
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    ta.style.left = '-1000px';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    } catch (e) {
+      ok = false;
+    }
+    document.body.removeChild(ta);
+    return ok ? Promise.resolve() : Promise.reject('execCommand échoué');
+  }
+
+  btnCopier.addEventListener('click', function () {
+    const texte = codeEl.textContent.trim();
+
+    const promesse = copierAvecClipboard(texte).catch(() => copierAvecFallback(texte));
+
+    promesse
+      .then(() => {
+        if (btnLabel) btnLabel.textContent = 'Copié !';
+        changerIcone(true);
+        afficherMessage('✅ Code machine copié dans le presse-papiers', true);
+        setTimeout(restaurerBouton, 2200);
+      })
+      .catch(() => {
+        changerIcone(false);
+        afficherMessage('❌ Impossible de copier. Sélectionnez le code manuellement.', false);
+        setTimeout(restaurerBouton, 2500);
+      });
+  });
+
+  // ✅ Bonus : clic sur le code = sélection + copie immédiate
+  codeEl.addEventListener('click', function () {
+    btnCopier.click();
+  });
+});
+</script>
+</body>
+</html>

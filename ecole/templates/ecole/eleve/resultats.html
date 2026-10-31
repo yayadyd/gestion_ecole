@@ -1,0 +1,310 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Résultats des élèves{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-trophy me-2"></i>
+        Résultats des élèves
+        <span class="badge bg-primary ms-2">{{ total_eleves }}</span>
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-secondary{% endif %} ms-1">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <div>
+        <button onclick="window.print()" class="btn btn-secondary btn-sm no-print">
+            <i class="fas fa-print"></i> Imprimer
+        </button>
+        <a href="{% url 'fondamental:dashboard' %}" class="btn btn-info btn-sm no-print">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3 no-print">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:eleve_resultats' %}?cycle=1er{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:eleve_resultats' %}?cycle=2e{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:eleve_resultats' %}{% if request.GET.annee or request.GET.search %}?{% if request.GET.annee %}annee={{ request.GET.annee }}{% endif %}{% if request.GET.annee and request.GET.search %}&{% endif %}{% if request.GET.search %}search={{ request.GET.search }}{% endif %}{% endif %}">
+            <i class="fas fa-list me-1"></i> Tous
+        </a>
+    </li>
+</ul>
+
+<!-- Info cycle -->
+{% if cycle_filtre == '1er' %}
+<div class="alert alert-info no-print">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>1er Cycle :</strong> les moyennes sont calculées sur les <strong>compositions mensuelles</strong>
+    (Octobre → Juin). Les 3 dernières colonnes affichent les 3 derniers mois évalués.
+</div>
+{% elif cycle_filtre == '2e' %}
+<div class="alert alert-primary no-print">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>2e Cycle :</strong> les moyennes sont calculées sur les <strong>3 trimestres</strong> avec coefficients.
+</div>
+{% endif %}
+
+<!-- Filtres -->
+<div class="card mb-3 no-print">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+
+            <div class="col-md-4">
+                <div class="input-group">
+                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                    <input type="text"
+                           name="search"
+                           class="form-control"
+                           placeholder="Rechercher par nom, prénom ou matricule..."
+                           value="{{ search }}">
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for classe in classes %}
+                    <option value="{{ classe.idClasse }}"
+                            {% if classe_id|add:"0" == classe.idClasse %}selected{% endif %}>
+                        {{ classe.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <select name="annee" class="form-select">
+                    <option value="">Toutes les années</option>
+                    {% for annee in annees %}
+                    <option value="{{ annee.idAnneeScolaire }}"
+                            {% if annee_id|add:"0" == annee.idAnneeScolaire %}selected{% endif %}>
+                        {{ annee.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+
+            {% if search or classe_id or annee_id %}
+            <div class="col-12">
+                <a href="{% url 'fondamental:eleve_resultats' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                   class="btn btn-secondary btn-sm">
+                    <i class="fas fa-times"></i> Réinitialiser les filtres
+                </a>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Résultats -->
+<div class="card">
+    <div class="card-body">
+
+        <!-- En-tête impression -->
+        <div class="text-center mb-3 print-header">
+            <h3 class="text-uppercase">Résultats des élèves</h3>
+            <h5>
+                {% if cycle_filtre %}
+                <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                    {{ cycle_filtre }} Cycle
+                </span>
+                {% endif %}
+                {% if classe_nom %}
+                    <strong>Classe :</strong> {{ classe_nom }}
+                {% endif %}
+                {% if annee_nom %}
+                    <span class="ms-3"><strong>Année scolaire :</strong> {{ annee_nom }}</span>
+                {% endif %}
+            </h5>
+            <hr>
+        </div>
+
+        {% if eleves_data %}
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-sm">
+                <thead class="table-dark">
+                    <tr>
+                        <th>N°</th>
+                        <th>Matricule</th>
+                        <th>Noms</th>
+                        <th>Prénoms</th>
+                        <th>Sexe</th>
+                        <th>Classe</th>
+                        {% if cycle_filtre == '1er' %}
+                            <th class="text-center">Période 1</th>
+                            <th class="text-center">Période 2</th>
+                            <th class="text-center">Période 3</th>
+                        {% elif cycle_filtre == '2e' %}
+                            <th class="text-center">1er Trim.</th>
+                            <th class="text-center">2e Trim.</th>
+                            <th class="text-center">3e Trim.</th>
+                        {% else %}
+                            <th class="text-center">Période 1</th>
+                            <th class="text-center">Période 2</th>
+                            <th class="text-center">Période 3</th>
+                        {% endif %}
+                        <th class="text-center">Moyenne Gén.</th>
+                        <th class="text-center">Rang</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eleve in eleves_data %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ eleve.matricule }}</td>
+                        <td>{{ eleve.nom }}</td>
+                        <td>{{ eleve.prenom }}</td>
+                        <td>{{ eleve.sexe }}</td>
+                        <td>
+                            {{ eleve.classe }}
+                            {% if not cycle_filtre %}
+                            <span class="badge {% if eleve.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-1">
+                                {{ eleve.cycle }}
+                            </span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Colonnes périodes -->
+                        <td class="text-center">
+                            {% if eleve.periode1.1 != '-' %}
+                                <strong>{{ eleve.periode1.1 }}</strong>
+                                {% if cycle_filtre %}<br><small class="text-muted">{{ eleve.periode1.0|slice:":3" }}</small>{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if eleve.periode2.1 != '-' %}
+                                <strong>{{ eleve.periode2.1 }}</strong>
+                                {% if cycle_filtre %}<br><small class="text-muted">{{ eleve.periode2.0|slice:":3" }}</small>{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if eleve.periode3.1 != '-' %}
+                                <strong>{{ eleve.periode3.1 }}</strong>
+                                {% if cycle_filtre %}<br><small class="text-muted">{{ eleve.periode3.0|slice:":3" }}</small>{% endif %}
+                            {% else %}-{% endif %}
+                        </td>
+
+                        <td class="text-center">
+                            <strong class="{% if eleve.moyenne_generale >= 12 %}text-success{% elif eleve.moyenne_generale >= 10 %}text-warning{% else %}text-danger{% endif %}">
+                                {{ eleve.moyenne_generale }}/20
+                            </strong>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge {% if eleve.rang_general <= 3 %}bg-success{% elif eleve.rang_general <= 10 %}bg-primary{% elif eleve.rang_general <= 20 %}bg-info{% else %}bg-secondary{% endif %}">
+                                {{ eleve.rang_general }}<sup>e</sup>
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-primary">
+                        <td colspan="{% if cycle_filtre %}11{% else %}11{% endif %}">
+                            <strong>Total : {{ total_eleves }} élève{{ total_eleves|pluralize }}</strong>
+                            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}
+                        </td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center py-4">
+            <i class="fas fa-info-circle fa-2x mb-3 text-muted"></i>
+            <p class="mb-0">
+                Aucun résultat trouvé
+                {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}
+                {% if classe_nom %}dans la classe {{ classe_nom }}{% endif %}.
+            </p>
+            {% if cycle_filtre == '2e' %}
+            <p class="small mt-2 mb-0">
+                Pensez à calculer les moyennes via
+                <a href="{% url 'fondamental:cycle2_bulletins_index' %}">Bulletins 2e cycle</a>.
+            </p>
+            {% elif cycle_filtre == '1er' %}
+            <p class="small mt-2 mb-0">
+                Pensez à calculer les moyennes via
+                <a href="{% url 'fondamental:cycle1_bulletins_index' %}">Bulletins 1er cycle</a>.
+            </p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+@media print {
+    .no-print {
+        display: none !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .card-body {
+        padding: 10px !important;
+    }
+    .table {
+        font-size: 10px;
+    }
+    .table th, .table td {
+        padding: 3px !important;
+    }
+    .table-dark {
+        background-color: #343a40 !important;
+        color: white !important;
+    }
+    .badge {
+        border: 1px solid #000 !important;
+        background-color: #f8f9fa !important;
+        color: #000 !important;
+    }
+    .print-header {
+        margin-bottom: 15px !important;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Recherche automatique
+    const searchInput = document.querySelector('input[name="search"]');
+    if (searchInput) {
+        let timer = null;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(timer);
+            timer = setTimeout(() => {
+                if (this.value.length >= 2 || this.value.length === 0) {
+                    this.closest('form').submit();
+                }
+            }, 500);
+        });
+    }
+});
+</script>
+
+{% endblock %}

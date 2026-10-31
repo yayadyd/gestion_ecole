@@ -1,0 +1,212 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Matières par classe{% endblock %}
+
+{% block content %}
+
+<!-- ============================================ -->
+<!-- EN-TÊTE GÉNÉRAL                               -->
+<!-- ============================================ -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <h4 class="mb-0">
+        <i class="fas fa-book-reader me-2"></i>
+        Matières par classe
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+        {% if annee_filtre %}
+        <span class="badge bg-dark ms-1">
+            <i class="fas fa-calendar-alt me-1"></i> {{ annee_selectionnee_nom }}
+        </span>
+        {% endif %}
+    </h4>
+    <div class="d-flex gap-2">
+        <!-- ✅ Copie Globale (Toutes les classes) - POST -->
+        {% if annee_precedente and has_matieres_precedentes %}
+        <form method="post" action="{% url 'fondamental:matiere_classe_copier_annee' annee_precedente.idAnneeScolaire %}" class="d-inline" onsubmit="return confirm('Voulez-vous copier TOUTES les matières de l\'année {{ annee_precedente.anneeScolaire }} vers l\'année en cours ?');">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-warning">
+                <i class="fas fa-copy"></i> Copier tout de {{ annee_precedente.anneeScolaire }}
+            </button>
+        </form>
+        {% endif %}
+
+        <!-- ✅ Bouton d'ajout général -->
+        <a href="{% url 'fondamental:matiere_classe_create' %}?{% if cycle_filtre %}cycle={{ cycle_filtre }}&{% endif %}{% if annee_filtre %}annee={{ annee_filtre }}{% endif %}"
+           class="btn btn-primary">
+            <i class="fas fa-plus"></i> Associer une matière
+        </a>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ONGLETS CYCLE                                 -->
+<!-- ============================================ -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:matiere_classe_list' %}?cycle=1er{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+            <span class="badge bg-info ms-1">{{ nb_1er }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:matiere_classe_list' %}?cycle=2e{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+            <span class="badge bg-primary ms-1">{{ nb_2e }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:matiere_classe_list' %}{% if annee_filtre %}?annee={{ annee_filtre }}{% endif %}">
+            <i class="fas fa-list me-1"></i> Toutes
+            <span class="badge bg-secondary ms-1">{{ nb_total }}</span>
+        </a>
+    </li>
+</ul>
+
+<!-- ============================================ -->
+<!-- FILTRES                                       -->
+<!-- ============================================ -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2 align-items-end">
+            {% if cycle_filtre %}
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+            {% endif %}
+
+            <div class="col-md-4">
+                <label class="form-label small">Année scolaire</label>
+                <select name="annee" class="form-select" onchange="this.form.submit()">
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}" {% if annee_filtre == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-5">
+                <label class="form-label small">Filtrer par classe</label>
+                <select name="classe" class="form-select" onchange="this.form.submit()">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.idClasse }}" {% if classe_id == c.idClasse|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <a href="{% url 'fondamental:matiere_classe_list' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}"
+                   class="btn btn-secondary w-100">
+                    <i class="fas fa-times"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================ -->
+<!-- LISTE DES CLASSES (Boucle principale)         -->
+<!-- ============================================ -->
+{% for item in liste_classes %}
+    {% with classe=item.classe matieres=item.matieres nb_matieres=item.nb_matieres %}
+    <div class="card mb-3 shadow-sm">
+        <!-- En-tête de la carte avec les boutons -->
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h5 class="mb-0">
+                <i class="fas fa-chalkboard me-2"></i>
+                {{ classe.nomClasse }}
+                <span class="badge bg-light text-dark ms-2">
+                    {{ nb_matieres }} matière{{ nb_matieres|pluralize }}
+                </span>
+                <span class="badge {% if classe.cycle == '1er' %}bg-info{% else %}bg-secondary{% endif %} ms-1">
+                    {{ classe.get_cycle_display }}
+                </span>
+            </h5>
+            
+            <!-- ✅ BOUTONS D'ACTION PAR CLASSE -->
+            <div class="d-flex gap-2">
+                {% if annee_precedente and has_matieres_precedentes %}
+                <form method="post" action="{% url 'fondamental:matiere_classe_copier_pour_classe' classe.idClasse annee_precedente.idAnneeScolaire %}" class="d-inline" onsubmit="return confirm('Voulez-vous copier les matières de l\'année {{ annee_precedente.anneeScolaire }} pour la classe {{ classe.nomClasse }} ?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-warning" title="Copier les matières de l'année {{ annee_precedente.anneeScolaire }}">
+                        <i class="fas fa-calendar-alt"></i> Année préc.
+                    </button>
+                </form>
+                {% endif %}
+                
+                <a href="{% url 'fondamental:matiere_classe_copier_depuis_classe' classe.idClasse %}?annee={{ annee_filtre }}" 
+                   class="btn btn-sm btn-info text-white" title="Copier les matières d'une autre classe">
+                    <i class="fas fa-copy"></i> Depuis...
+                </a>
+                
+                <a href="{% url 'fondamental:matiere_classe_create' %}?classe={{ classe.idClasse }}{% if annee_filtre %}&annee={{ annee_filtre }}{% endif %}"
+                   class="btn btn-sm btn-light">
+                    <i class="fas fa-plus"></i> Ajouter
+                </a>
+            </div>
+        </div>
+        
+        <!-- Corps de la carte : tableau des matières -->
+        <div class="card-body">
+            {% if matieres %}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Ordre</th>
+                            <th>Matières</th>
+                            {% if est_franco_arabe %}<th>مواد</th>{% endif %}
+                            {% if classe.cycle == '2e' %}<th class="text-center">Coefficient</th>{% endif %}
+                            <th class="text-center">Obligatoire</th>
+                            <th class="text-center" style="width: 100px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for mc in matieres %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ mc.ordre_affichage }}</span></td>
+                            <td><strong>{{ mc.matiere.nomMatiere }}</strong></td>
+                            {% if est_franco_arabe %}<td dir="rtl">{{ mc.matiere.nomArabe|default:"—" }}</td>{% endif %}
+                            {% if classe.cycle == '2e' %}<td class="text-center"><span class="badge bg-info text-dark">{{ mc.matiere.coef }}</span></td>{% endif %}
+                            <td class="text-center">
+                                {% if mc.obligatoire %}<i class="fas fa-check-circle text-success"></i>{% else %}<i class="fas fa-times-circle text-muted"></i>{% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'fondamental:matiere_classe_update' mc.pk %}" class="btn btn-warning" title="Modifier">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'fondamental:matiere_classe_delete' mc.pk %}" class="btn btn-danger" title="Supprimer">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning mb-0 text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Aucune matière associée à cette classe pour cette année.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endwith %}
+{% empty %}
+<div class="alert alert-info text-center py-4">
+    <i class="fas fa-info-circle fa-2x mb-3 text-muted"></i>
+    <p class="mb-0">Aucune classe trouvée pour ces critères.</p>
+</div>
+{% endfor %}
+
+{% endblock %}

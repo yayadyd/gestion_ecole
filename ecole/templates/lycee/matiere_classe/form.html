@@ -1,0 +1,103 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{% if form.instance.pk %}Modifier{% else %}Associer{% endif %} une matière{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-book-reader me-2"></i>
+        {% if form.instance.pk %}
+            Modifier l'association
+        {% else %}
+            Associer une matière à une classe
+        {% endif %}
+    </h4>
+    <a href="{% url 'lycee:matiere_classe_lycee_list' %}" class="btn btn-outline-secondary btn-sm">
+        <i class="fas fa-arrow-left"></i> Retour
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}<div>{{ error }}</div>{% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Classe <span class="text-danger">*</span>
+                            </label>
+                            {{ form.classe }}
+                            <small class="text-muted d-block">
+                                La classe du lycée à laquelle associer la matière.
+                            </small>
+                            {% if form.classe.errors %}
+                                <div class="text-danger small">{{ form.classe.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">
+                                Matière <span class="text-danger">*</span>
+                            </label>
+                            {{ form.matiere }}
+                            <small class="text-muted d-block">
+                                La matière du catalogue à associer.
+                            </small>
+                            {% if form.matiere.errors %}
+                                <div class="text-danger small">{{ form.matiere.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ordre d'affichage</label>
+                            {{ form.ordre_affichage }}
+                            <small class="text-muted d-block">
+                                Plus petit = affiché en premier sur le bulletin.
+                            </small>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check mt-4">
+                                {{ form.obligatoire }}
+                                <label class="form-check-label" for="{{ form.obligatoire.id_for_label }}">
+                                    Matière obligatoire
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info small mt-2">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <strong>Rappel :</strong> le <strong>coefficient</strong> de la matière
+                        est défini séparément dans la section
+                        <a href="{% url 'lycee:coefficient_list' %}" class="alert-link">
+                            Coefficients
+                        </a>.
+                        Il dépend du <strong>niveau</strong> et de la <strong>série</strong> de la classe.
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                        <a href="{% url 'lycee:matiere_classe_lycee_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i> Annuler
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Enregistrer
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

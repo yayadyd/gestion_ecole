@@ -1,0 +1,45 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Confirmer la suppression{% endblock %}
+
+{% block content %}
+<div class="delete-confirm">
+    <div class="card border-danger">
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">⚠️ Confirmation de suppression</h5>
+        </div>
+        <div class="card-body">
+            <p>Êtes-vous sûr de vouloir supprimer la plage horaire suivante ?</p>
+
+            <div class="alert alert-light border">
+                <p class="mb-1"><strong>Horaire :</strong> {{ object.heure_debut|time:"H:i" }} - {{ object.heure_fin|time:"H:i" }}</p>
+                {% if object.libelle %}
+                <p class="mb-1"><strong>Libellé :</strong> {{ object.libelle }}</p>
+                {% endif %}
+                <p class="mb-0">
+                    <strong>Type :</strong>
+                    {% if object.est_pause %}Pause{% else %}Cours{% endif %}
+                </p>
+            </div>
+
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Attention :</strong> cette plage est utilisée dans les emplois du temps.
+                Sa suppression retirera tous les créneaux associés.
+            </div>
+
+            <form method="post">
+                {% csrf_token %}
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                    <a href="{% url 'fondamental:plage_horaire_list' %}" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Annuler
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

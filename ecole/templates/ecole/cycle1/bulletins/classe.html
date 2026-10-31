@@ -1,0 +1,118 @@
+{% extends 'ecole/base.html' %}
+{% load custom_filters %}
+
+{% block page_title %}Bulletins mensuels - {{ classe.nomClasse }} - {{ nom_mois }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3 no-print">
+    <h4><i class="fas fa-calendar-check me-2"></i> {{ classe.nomClasse }} - {{ nom_mois }} {{ annee_scolaire }}</h4>
+    <div class="d-flex gap-2 flex-wrap">
+        <div class="btn-group btn-group-sm">
+            {% for m, nom in mois_choices %}
+            <a href="{% url 'fondamental:cycle1_bulletin_classe' classe.idClasse annee_scolaire m %}"
+               class="btn {% if m == mois %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                {{ nom|slice:":3" }}
+            </a>
+            {% endfor %}
+        </div>
+        <a href="{% url 'fondamental:cycle1_calculer_moyennes' classe.idClasse annee_scolaire mois %}" class="btn btn-success btn-sm">
+            <i class="fas fa-calculator"></i> Calculer
+        </a>
+        <a href="{% url 'fondamental:cycle1_classer_eleves' classe.idClasse annee_scolaire mois %}" class="btn btn-warning btn-sm">
+            <i class="fas fa-sort"></i> Classer
+        </a>
+        
+        <a href="{% url 'fondamental:cycle1_exporter_bulletins_pdf' classe.idClasse annee_scolaire mois %}"
+        class="btn btn-danger btn-sm" title="Exporter tous les bulletins de la classe en PDF">
+            <i class="fas fa-file-pdf"></i> Exporter tous les bulletins
+        </a>
+        <a href="{% url 'fondamental:cycle1_bulletins_index' %}?annee={{ annee_scolaire }}"
+        class="btn btn-info btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+{% if resultats %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            {{ classe.nomClasse }}
+            <span class="badge bg-light text-dark ms-2">{{ stats.nb_eleves }} élèves</span>
+            {% if stats %}<span class="badge bg-info ms-2">Moyenne classe : {{ stats.moyenne_classe }}/10</span>{% endif %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>#</th><th>Élève</th><th>Matricule</th>
+                        {% for matiere in matieres %}
+                        <th class="text-center">{{ matiere.nomMatiere|slice:":8" }}<br><small>/10</small></th>
+                        {% endfor %}
+                        <th class="text-center">Moyenne</th>
+                        <th class="text-center">Rang</th>
+                        <th class="text-center">Bulletin</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for resultat in resultats %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ resultat.inscription.eleve.nomEleve }} {{ resultat.inscription.eleve.prenomEleve }}</td>
+                        <td>{{ resultat.inscription.eleve.matricule }}</td>
+                        {% for matiere in matieres %}
+                        {% with detail=resultat.details_dict|get_item:matiere.idMatiere %}
+                        {% if detail %}
+                        <td class="text-center {% if detail.note >= 5 %}text-success{% else %}text-danger{% endif %}">
+                            <strong>{{ detail.note }}</strong>
+                        </td>
+                        {% else %}
+                        <td class="text-center text-muted">-</td>
+                        {% endif %}
+                        {% endwith %}
+                        {% endfor %}
+                        <td class="text-center">
+                            <strong class="{% if resultat.moyenne_generale >= 5 %}text-success{% else %}text-danger{% endif %}">
+                                {{ resultat.moyenne_generale }}
+                            </strong>
+                        </td>
+                        <td class="text-center"><span class="badge bg-secondary">{{ resultat.rang|default:"-" }}</span></td>
+                        <td class="text-center">
+                            <a href="{% url 'fondamental:cycle1_bulletin_eleve' resultat.inscription.eleve.id annee_scolaire mois %}" class="btn btn-sm btn-info">
+                                <i class="fas fa-file-alt"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-warning">
+    <i class="fas fa-info-circle me-2"></i>
+    <strong>Aucune donnée pour {{ nom_mois }}.</strong>
+    <p class="mb-2 mt-2 small">
+        Cela signifie qu'aucune note n'a encore été saisie pour ce mois dans cette classe.
+        Vous pouvez commencer la saisie ou calculer les moyennes si des notes existent.
+    </p>
+    <div class="d-flex gap-2 mt-2 flex-wrap">
+        <a href="{% url 'fondamental:cycle1_saisie_notes' %}?annee={{ annee_scolaire }}&classe={{ classe.idClasse }}&mois={{ mois }}"
+           class="btn btn-primary btn-sm">
+            <i class="fas fa-edit"></i> Saisir les notes de {{ nom_mois }}
+        </a>
+        <a href="{% url 'fondamental:cycle1_calculer_moyennes' classe.idClasse annee_scolaire mois %}"
+           class="btn btn-success btn-sm">
+            <i class="fas fa-calculator"></i> Calculer les moyennes
+        </a>
+        <a href="{% url 'fondamental:cycle1_bulletins_index' %}?annee={{ annee_scolaire }}"
+           class="btn btn-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

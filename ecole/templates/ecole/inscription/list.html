@@ -1,0 +1,184 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Inscriptions{% endblock %}
+
+{% block content %}
+
+<!-- En-tête -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-pen-fancy me-2"></i>
+        Inscriptions
+        {% if cycle_filtre %}
+        <span class="badge {% if cycle_filtre == '1er' %}bg-info{% else %}bg-primary{% endif %} ms-2">
+            {{ cycle_filtre }} Cycle
+        </span>
+        {% endif %}
+    </h4>
+    <a href="{% url 'fondamental:inscription_create' %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Nouvelle inscription
+    </a>
+</div>
+
+<!-- Onglets cycle -->
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '1er' %}active{% endif %}"
+           href="{% url 'fondamental:inscription_list' %}?cycle=1er{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 1er Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if cycle_filtre == '2e' %}active{% endif %}"
+           href="{% url 'fondamental:inscription_list' %}?cycle=2e{% if request.GET.annee %}&annee={{ request.GET.annee }}{% endif %}">
+            <i class="fas fa-book me-1"></i> 2e Cycle
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link {% if not cycle_filtre %}active{% endif %}"
+           href="{% url 'fondamental:inscription_list' %}{% if request.GET.annee %}?annee={{ request.GET.annee }}{% endif %}">
+            <i class="fas fa-list me-1"></i> Toutes
+        </a>
+    </li>
+</ul>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <input type="hidden" name="cycle" value="{{ cycle_filtre }}">
+
+            <div class="col-md-4">
+                <select name="annee" class="form-select">
+                    <option value="">Toutes les années</option>
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}"
+                            {% if request.GET.annee == a.idAnneeScolaire|stringformat:"s" %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <select name="classe" class="form-select">
+                    <option value="">Toutes les classes</option>
+                    {% for c in classes %}
+                    <option value="{{ c.idClasse }}"
+                            {% if request.GET.classe == c.idClasse|stringformat:"s" %}selected{% endif %}>
+                        {{ c.nomClasse }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter"></i> Filtrer
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Prénoms et Noms</th>
+                        <th>Classe</th>
+                        <th>Cycle</th>
+                        <th>Année scolaire</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for inscription in inscriptions %}
+                    <tr>
+                        <td>{{ inscription.idInscription }}</td>
+                        <td>
+                            <a href="{% url 'fondamental:eleve_detail' inscription.eleve.pk %}">
+                                {{ inscription.eleve }}
+                            </a>
+                        </td>
+                        <td>{{ inscription.classe }}</td>
+                        <td>
+                            <span class="badge {% if inscription.classe.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                {{ inscription.classe.get_cycle_display }}
+                            </span>
+                        </td>
+                        <td>{{ inscription.anneeScolaire }}</td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fondamental:inscription_update' inscription.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'fondamental:inscription_delete' inscription.pk %}{% if cycle_filtre %}?cycle={{ cycle_filtre }}{% endif %}" class="btn btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Aucune inscription enregistrée
+                            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="page-item active">
+                    <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        {% if inscriptions %}
+        <div class="text-muted small mt-2">
+            <i class="fas fa-list me-1"></i>
+            Total : 
+            <strong>{{ page_obj.paginator.count }}</strong>
+            inscription{{ page_obj.paginator.count|pluralize }}
+            {% if cycle_filtre %}pour le {{ cycle_filtre }} cycle{% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

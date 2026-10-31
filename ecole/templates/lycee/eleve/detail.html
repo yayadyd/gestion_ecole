@@ -1,0 +1,173 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}{{ eleve.nom }} {{ eleve.prenom }}{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>
+        <i class="fas fa-user-graduate me-2"></i>
+        {{ eleve.nom }} {{ eleve.prenom }}
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:eleve_update' eleve.pk %}" class="btn btn-warning btn-sm">
+            <i class="fas fa-edit"></i> Modifier
+        </a>
+        
+        <a href="{% url 'lycee:eleve_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+
+    <!-- Carte identité -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body text-center">
+                {% if eleve.photo %}
+                    <img src="{{ eleve.photo.url }}" alt="Photo" class="rounded mb-3" style="max-width: 150px;">
+                {% else %}
+                    <i class="fas fa-user-circle fa-5x text-muted mb-3"></i>
+                {% endif %}
+                <h5 class="mb-1">{{ eleve.nom }} {{ eleve.prenom }}</h5>
+                <p class="text-muted mb-2">
+                    <code>{{ eleve.matricule }}</code>
+                </p>
+                <span class="badge bg-primary">{{ eleve.get_sexe_display }}</span>
+                <span class="badge bg-secondary">{{ eleve.get_age }} ans</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Informations détaillées -->
+    <div class="col-md-8">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h6 class="mb-0"><i class="fas fa-info-circle me-1"></i> Informations détaillées</h6>
+            </div>
+            <div class="card-body">
+                <table class="table table-sm mb-0">
+                    <tr>
+                        <th style="width: 40%;">Date de naissance :</th>
+                        <td>{{ eleve.date_naissance|date:"d/m/Y" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Lieu de naissance :</th>
+                        <td>{{ eleve.lieu_naissance }}</td>
+                    </tr>
+                    <tr>
+                        <th>Statut :</th>
+                        <td>
+                            {% if eleve.statut == 'oriente' %}
+                                <span class="badge bg-success">Orienté par l'État (gratuit)</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">Payant</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Nom du père :</th>
+                        <td>{{ eleve.pere|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Nom de la mère :</th>
+                        <td>{{ eleve.mere|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Contact du tuteur :</th>
+                        <td>{{ eleve.contact_tuteur|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Adresse :</th>
+                        <td>{{ eleve.adresse|default:"Non renseignée" }}</td>
+                    </tr>
+                    <tr>
+                        <th>N° acte de naissance :</th>
+                        <td>{{ eleve.numero_acte_naissance|default:"Non renseigné" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Date délivrance acte :</th>
+                        <td>{{ eleve.date_delivrance_acte|date:"d/m/Y"|default:"Non renseignée" }}</td>
+                    </tr>
+                    <tr>
+                        <th>École de provenance :</th>
+                        <td>{{ eleve.ecole_provenance|default:"Non renseignée" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Année du DEF :</th>
+                        <td>{{ eleve.annee_def|default:"Non renseignée" }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+        <!-- Parcours scolaire -->
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">
+                <h6 class="mb-0"><i class="fas fa-history me-1"></i> Parcours scolaire au lycée</h6>
+            </div>
+            <div class="card-body p-0">
+                {% if inscriptions %}
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Année scolaire</th>
+                            <th>Classe</th>
+                            <th>Niveau</th>
+                            <th>Série</th>
+                            <th class="text-end">Frais scolarité</th>
+                            <th class="text-center" style="min-width: 180px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ins in inscriptions %}
+                        <tr>
+                            <td><strong>{{ ins.annee_scolaire.anneeScolaire }}</strong></td>
+                            <td>{{ ins.classe.nom }}</td>
+                            <td><span class="badge bg-primary">{{ ins.classe.get_niveau_display }}</span></td>
+                            <td>
+                                {% if ins.classe.serie %}
+                                    <span class="badge bg-info">{{ ins.classe.get_serie_display }}</span>
+                                {% else %}
+                                    <span class="text-muted">CG</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">{{ ins.classe.frais_scolarite|floatformat:0 }} FCFA</td>
+                            
+                            <td class="text-center">
+                                <!-- ✅ FORMULAIRE POUR LE FOND ET LE BOUTON -->
+                                <form method="get" action="{% url 'lycee:carte_lycee_preview' ins.id_inscription %}" class="d-flex gap-1 justify-content-center">
+                                    <input type="hidden" name="couleur" value="#6f42c1">
+                                    <select name="fond" class="form-select form-select-sm" style="width: 110px; font-size: 0.75rem;">
+                                        <option value="fond_blanc.jpg">Fond blanc</option>
+                                        <option value="carte_scolaire1.jpg">Fond 1</option>
+                                        <option value="carte_scolaire2.jpg">Fond 2</option>
+                                        <option value="carte_scolaire3.jpg">Fond 3</option>
+                                        <option value="carte_scolaire4.jpg">Fond 4</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary" title="Voir la carte scolaire">
+                                        <i class="fas fa-id-card"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="p-3 text-muted text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Aucune inscription au lycée pour cet élève.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

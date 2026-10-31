@@ -1,0 +1,174 @@
+{% extends 'lycee/base_lycee.html' %}
+
+{% block page_title %}Élèves du Lycée{% endblock %}
+
+{% block lycee_content %}
+
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap">
+    <h4 class="mb-0">
+        <i class="fas fa-user-graduate me-2"></i> Élèves du Lycée
+        <span class="badge bg-primary ms-2">{{ total }}</span>
+    </h4>
+    <div class="d-flex gap-2">
+        <a href="{% url 'lycee:eleve_list_filtered' %}" class="btn btn-outline-info">
+            <i class="fas fa-filter"></i> Liste filtrée
+        </a>
+        <a href="{% url 'lycee:eleve_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Nouvel élève
+        </a>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="card mb-3">
+    <div class="card-body">
+        <form method="get" class="row g-2">
+            <div class="col-md-5">
+                <input type="text" name="search" class="form-control"
+                       placeholder="Rechercher par matricule, nom ou prénom..."
+                       value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="niveau" class="form-select">
+                    <option value="">Tous les niveaux</option>
+                    <option value="10" {% if niveau_filtre == '10' %}selected{% endif %}>10ème Année</option>
+                    <option value="11" {% if niveau_filtre == '11' %}selected{% endif %}>11ème Année</option>
+                    <option value="12" {% if niveau_filtre == '12' %}selected{% endif %}>Terminale</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i> Rechercher
+                </button>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'lycee:eleve_list' %}" class="btn btn-secondary w-100">
+                    <i class="fas fa-times"></i> Réinitialiser
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tableau -->
+<div class="card shadow-sm">
+    <div class="card-header bg-dark text-white d-flex justify-content-between">
+        <h6 class="mb-0">
+            <i class="fas fa-table me-1"></i>
+            {{ total }} élève{{ total|pluralize }} au total
+        </h6>
+        {% if search or niveau_filtre %}
+        <small class="opacity-75">
+            <i class="fas fa-filter"></i> Filtres actifs
+        </small>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 50px;">#</th>
+                        <th>Matricule</th>
+                        <th>Nom et Prénom</th>
+                        <th class="text-center">Sexe</th>
+                        <th>Date de naissance</th>
+                        <th>Classe actuelle</th>
+                        <th class="text-center">Statut</th>
+                        <th class="text-center" style="width: 140px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for eleve in eleves %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td><code class="fw-bold">{{ eleve.matricule }}</code></td>
+                        <td>
+                            <strong>{{ eleve.nom }} {{ eleve.prenom }}</strong>
+                        </td>
+                        <td class="text-center">
+                            {% if eleve.sexe == 'M' %}
+                                <span class="badge bg-info">M</span>
+                            {% else %}
+                                <span class="badge bg-danger">F</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ eleve.date_naissance|date:"d/m/Y" }}</td>
+                        <td>
+                            {% if eleve.infos_actuelles %}
+                                <span class="badge bg-primary">{{ eleve.infos_actuelles.classe }}</span>
+                                <br>
+                                <small class="text-muted">{{ eleve.infos_actuelles.annee }}</small>
+                            {% else %}
+                                <span class="text-muted">Non inscrit</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            {% if eleve.statut == 'oriente' %}
+                                <span class="badge bg-success">
+                                    <i class="fas fa-check-circle"></i> Orienté
+                                </span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="fas fa-user-graduate"></i> Payant
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'lycee:eleve_detail' eleve.pk %}"
+                                   class="btn btn-info" title="Détails">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'lycee:eleve_update' eleve.pk %}"
+                                   class="btn btn-warning" title="Modifier">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'lycee:eleve_delete' eleve.pk %}"
+                                   class="btn btn-danger" title="Supprimer">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <!-- ✅ FIX: colspan=8 -->
+                        <td colspan="8" class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-2"></i>
+                            <p class="mb-0">Aucun élève trouvé.</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-3">
+    <ul class="pagination pagination-sm justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if niveau_filtre %}&niveau={{ niveau_filtre }}{% endif %}">
+                    Précédent
+                </a>
+            </li>
+        {% endif %}
+        <li class="page-item active">
+            <span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if niveau_filtre %}&niveau={{ niveau_filtre }}{% endif %}">
+                    Suivant
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+{% endblock %}

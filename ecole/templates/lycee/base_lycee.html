@@ -1,0 +1,306 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block page_title %}Lycée{% endblock %} — {{ ecole.nom|default:"Gestion École" }}</title>
+
+    <!-- ============================================ -->
+    <!-- BOOTSTRAP CSS (local)                         -->
+    <!-- ============================================ -->
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap/css/bootstrap.min.css' %}">
+
+    <!-- ============================================ -->
+    <!-- FONT AWESOME (local)                          -->
+    <!-- ============================================ -->
+    <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
+
+    <!-- ============================================ -->
+    <!-- GOOGLE FONTS (Poppins)                        -->
+    <!-- ============================================ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --lycee-primary: #6f42c1;
+            --lycee-primary-dark: #59339d;
+            --lycee-secondary: #f39c12;
+            --lycee-accent: #e83e8c;
+            --lycee-bg: #faf7ff;
+            --lycee-bg-alt: #f5f0ff;
+            --lycee-text: #2c2c3e;
+            --lycee-text-muted: #6c6c80;
+            --lycee-border: #e5d9ff;
+            --lycee-shadow: 0 2px 8px rgba(111, 66, 193, 0.12);
+        }
+
+        * { font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        body { background-color: var(--lycee-bg); color: var(--lycee-text); min-height: 100vh; }
+
+        /* HEADER BANDEAU */
+        .lycee-header {
+            background: linear-gradient(135deg, var(--lycee-primary) 0%, var(--lycee-accent) 100%);
+            color: white; padding: 18px 24px; border-radius: 12px; margin-bottom: 20px;
+            box-shadow: 0 4px 16px rgba(111, 66, 193, 0.25);
+            position: relative; overflow: visible; /* Modifié pour le menu déroulant */
+        }
+        .lycee-header::before {
+            content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%); pointer-events: none;
+        }
+        .lycee-header h3 { margin: 0; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px; position: relative; z-index: 1; }
+        .lycee-header .badge { background: rgba(255, 255, 255, 0.2) !important; color: white !important; font-weight: 500; padding: 6px 12px; backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.3); }
+
+        /* MENU DE NAVIGATION */
+        .lycee-nav {
+            background: white; border-radius: 12px; padding: 12px 16px; margin-bottom: 20px;
+            box-shadow: var(--lycee-shadow); border: 1px solid var(--lycee-border);
+            display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+        }
+        .lycee-nav .nav-link { color: var(--lycee-text); font-weight: 500; font-size: 0.9rem; padding: 8px 14px; border-radius: 8px; text-decoration: none; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+        .lycee-nav .nav-link:hover { background: var(--lycee-bg-alt); color: var(--lycee-primary); transform: translateY(-1px); }
+        .lycee-nav .nav-link.active { background: linear-gradient(135deg, var(--lycee-primary), var(--lycee-accent)); color: white; box-shadow: 0 2px 8px rgba(111, 66, 193, 0.3); }
+        .lycee-nav .nav-separator { border-left: 2px solid var(--lycee-border); height: 24px; margin: 0 8px; }
+
+        /* CARTES ET COMPOSANTS */
+        .card { border: 1px solid var(--lycee-border); border-radius: 12px; box-shadow: var(--lycee-shadow); transition: box-shadow 0.2s ease; }
+        .card:hover { box-shadow: 0 4px 16px rgba(111, 66, 193, 0.15); }
+        .card-header { background: var(--lycee-bg-alt); border-bottom: 1px solid var(--lycee-border); border-radius: 12px 12px 0 0 !important; font-weight: 600; color: var(--lycee-primary); }
+        .card-header.bg-primary { background: linear-gradient(135deg, var(--lycee-primary), var(--lycee-accent)) !important; color: white !important; }
+        .card-header.bg-dark { background: #2c2c3e !important; color: white !important; }
+
+        /* BOUTONS */
+        .btn-primary { background: linear-gradient(135deg, var(--lycee-primary), var(--lycee-primary-dark)); border: none; font-weight: 500; padding: 8px 18px; border-radius: 8px; transition: all 0.2s ease; }
+        .btn-primary:hover { background: linear-gradient(135deg, var(--lycee-primary-dark), var(--lycee-primary)); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(111, 66, 193, 0.3); }
+        .btn-warning { background: linear-gradient(135deg, var(--lycee-secondary), #e67e22); border: none; color: white; font-weight: 500; }
+        .btn-warning:hover { background: linear-gradient(135deg, #e67e22, var(--lycee-secondary)); color: white; }
+        .btn-outline-primary { color: var(--lycee-primary); border-color: var(--lycee-primary); }
+        .btn-outline-primary:hover { background: var(--lycee-primary); color: white; }
+
+        /* BADGES & TABLEAUX */
+        .badge.bg-primary { background: var(--lycee-primary) !important; }
+        .badge.bg-info { background: var(--lycee-accent) !important; }
+        .badge.bg-success { background: #28a745 !important; }
+        .badge.bg-warning { background: var(--lycee-secondary) !important; color: white !important; }
+        .table thead.table-dark th { background: linear-gradient(135deg, var(--lycee-primary), var(--lycee-primary-dark)); color: white; border-color: var(--lycee-primary-dark); font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; }
+        .table-hover tbody tr:hover { background-color: var(--lycee-bg-alt); }
+
+        /* FORMULAIRES */
+        .form-control:focus, .form-select:focus { border-color: var(--lycee-primary); box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.15); }
+        .form-check-input:checked { background-color: var(--lycee-primary); border-color: var(--lycee-primary); }
+        .alert-info { background: var(--lycee-bg-alt); border-color: var(--lycee-border); color: var(--lycee-primary-dark); }
+
+        /* ANIMATIONS */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .container-fluid > * { animation: fadeInUp 0.3s ease-out; }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .lycee-nav { padding: 8px; }
+            .lycee-nav .nav-link { padding: 6px 10px; font-size: 0.8rem; }
+            .lycee-nav .nav-separator { display: none; }
+        }
+    </style>
+
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<!-- Conteneur principal -->
+<div class="container-fluid py-3 px-3 px-md-4">
+
+    <!-- ============================================ -->
+    <!-- HEADER BANDEAU LYCÉE                          -->
+    <!-- ============================================ -->
+    <div class="lycee-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+            {% if ecole and ecole.logo %}
+            <img src="{{ ecole.logo.url }}" style="height: 40px; border-radius: 6px;" alt="{{ ecole.nom }}">
+            {% endif %}
+            <div>
+                <h3 class="mb-0">
+                    <i class="fas fa-graduation-cap me-2"></i>
+                    {% block header_title %}Lycée — Section Indépendante{% endblock %}
+                </h3>
+                <small class="text-white-50">{{ ecole.nom|default:"Gestion Scolaire" }}</small>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex gap-2 flex-wrap">
+                <span class="badge">
+                    <i class="fas fa-user-graduate me-1"></i>
+                    {{ nb_eleves|default:"0" }} élèves
+                </span>
+                <span class="badge">
+                    <i class="fas fa-chalkboard me-1"></i>
+                    {{ nb_classes|default:"0" }} classes
+                </span>
+                <span class="badge">
+                    <i class="fas fa-calendar me-1"></i>
+                    {{ annee_encours|default:"—" }}
+                </span>
+            </div>
+
+            <!-- MENU UTILISATEUR -->
+            <div class="dropdown" style="position: relative; z-index: 1050;">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle" type="button" id="dropdownUserLycee" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle me-1"></i> {{ request.user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="dropdownUserLycee" style="background-color: white; z-index: 1050;">
+                    
+                    {% if ACTIVER_FONDAMENTAL %}
+                    <li>
+                        <a class="dropdown-item fw-bold text-primary" href="{% url 'fondamental:dashboard' %}">
+                            <i class="fas fa-school me-2"></i> Passer au Fondamental
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    {% endif %}
+
+                    <li>
+                        <a class="dropdown-item" href="{% url 'password_change' %}">
+                            <i class="fas fa-key me-2"></i> Modifier mon mot de passe
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form action="{% url 'logout' %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item text-danger">
+                                <i class="fas fa-sign-out-alt me-2"></i> Déconnexion
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================ -->
+    <!-- MENU DE NAVIGATION LYCÉE                       -->
+    <!-- ============================================ -->
+    <nav class="lycee-nav">
+        <!-- ✅ Le paramètre ?annee=... est ajouté partout -->
+        <a href="{% url 'lycee:dashboard' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+            <i class="fas fa-tachometer-alt"></i> Tableau de bord
+        </a>
+        
+        <span class="nav-separator"></span>
+        
+        <a href="{% url 'lycee:eleve_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'eleve' in request.resolver_match.url_name and 'inscription' not in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-user-graduate"></i> Élèves
+        </a>
+        <a href="{% url 'lycee:inscription_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'inscription' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-user-plus"></i> Inscriptions
+        </a>
+        <a href="{% url 'lycee:paiement_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'paiement' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-money-bill-wave"></i> Paiements
+        </a>
+
+        <span class="nav-separator"></span>
+
+        <a href="{% url 'lycee:classe_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'classe' in request.resolver_match.url_name and 'matiere' not in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-chalkboard"></i> Classes
+        </a>
+        <a href="{% url 'lycee:matiere_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if request.resolver_match.url_name == 'matiere_list' %}active{% endif %}">
+            <i class="fas fa-book"></i> Matières
+        </a>
+        <a href="{% url 'lycee:coefficient_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'coefficient' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-balance-scale"></i> Coefficients
+        </a>
+        <a href="{% url 'lycee:matiere_classe_lycee_list' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'matiere_classe' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-book-reader"></i> Matières/classe
+        </a>
+
+        <span class="nav-separator"></span>
+
+        <a href="{% url 'lycee:saisie_notes_par_classe' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'saisie' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-edit"></i> Saisie notes
+        </a>
+        <a href="{% url 'lycee:bulletins_index' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'bulletin' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-file-alt"></i> Bulletins
+        </a>
+        <a href="{% url 'lycee:resultats_lycee_index' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'resultats' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-award"></i> Résultats
+        </a>
+        <a href="{% url 'lycee:emploi_temps_lycee_index' %}{% if annee_encours_id %}?annee={{ annee_encours_id }}{% endif %}"
+           class="nav-link {% if 'emploi_temps' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-calendar-alt"></i> Emploi du temps
+        </a>
+        <a href="{% url 'lycee:plage_lycee_list' %}"
+           class="nav-link {% if 'plage_lycee' in request.resolver_match.url_name %}active{% endif %}">
+            <i class="fas fa-clock"></i> Plages horaires
+        </a>
+        {% if perms.ecole.voir_comptabilite %}
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'lycee:comptabilite_dashboard' %}">
+                <i class="fas fa-calculator"></i> Comptabilité
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'lycee:rapports_comptables' %}">
+                <i class="fas fa-chart-bar"></i> Rapports
+            </a>
+        </li>
+        {% endif %}
+
+        <span class="nav-separator"></span>
+
+        <!-- Section : Administration -->
+        <a href="{% url 'core:utilisateur_list' %}" class="nav-link" title="Gestion des utilisateurs">
+            <i class="fas fa-users-cog"></i> Utilisateurs
+        </a>
+    </nav>
+
+    <!-- ============================================ -->
+    <!-- MESSAGES                                      -->
+    <!-- ============================================ -->
+    {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endfor %}
+    {% endif %}
+
+    <!-- ============================================ -->
+    <!-- CONTENU DE LA PAGE                            -->
+    <!-- ============================================ -->
+    {% block lycee_content %}{% endblock %}
+
+</div>
+
+<!-- ============================================ -->
+<!-- JQUERY (local)                                -->
+<!-- ============================================ -->
+<script src="{% static 'vendor/jquery/jquery.min.js' %}"></script>
+
+<!-- ============================================ -->
+<!-- BOOTSTRAP JS (local)                          -->
+<!-- ============================================ -->
+<script src="{% static 'vendor/bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+<!-- ============================================ -->
+<!-- CHART.JS (local)                              -->
+<!-- ============================================ -->
+<script src="{% static 'vendor/chartjs/chart.min.js' %}"></script>
+
+{% block extra_js %}{% endblock %}
+
+</body>
+</html>

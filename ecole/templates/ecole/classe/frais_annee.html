@@ -1,0 +1,98 @@
+{% extends 'ecole/base.html' %}
+
+{% block page_title %}Frais par classe - {{ annee.anneeScolaire }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>
+            <i class="fas fa-money-bill-wave me-2"></i>
+            Frais des classes — {{ annee.anneeScolaire }}
+        </h4>
+        <a href="{% url 'fondamental:classe_list' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left"></i> Retour aux classes
+        </a>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-1"></i>
+        Définissez ici les frais pour l'année <strong>{{ annee.anneeScolaire }}</strong>.
+        Ces montants seront utilisés pour les nouvelles inscriptions de cette année.
+    </div>
+
+    <!-- Sélecteur d'année -->
+    <div class="card mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="d-flex align-items-center">
+                <label class="me-2 fw-bold text-muted">Changer d'année :</label>
+                <select name="annee" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                    {% for a in annees %}
+                    <option value="{{ a.idAnneeScolaire }}" {% if a.idAnneeScolaire == annee.idAnneeScolaire %}selected{% endif %}>
+                        {{ a.anneeScolaire }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Classe</th>
+                            <th>Cycle</th>
+                            <th style="width: 200px;">Frais d'inscription (FCFA)</th>
+                            <th style="width: 200px;">Frais de scolarité annuel (FCFA)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for form in formset %}
+                        <tr>
+                            {{ form.id }}
+                            <td>
+                                <strong>{{ form.classe_obj.nomClasse }}</strong>
+                            </td>
+                            <td>
+                                <span class="badge {% if form.classe_obj.cycle == '1er' %}bg-info{% else %}bg-primary{% endif %}">
+                                    {{ form.classe_obj.get_cycle_display }}
+                                </span>
+                            </td>
+                            <td>
+                                {{ form.frais_inscription }}
+                                {% if form.frais_inscription.errors %}
+                                    <div class="text-danger small">{{ form.frais_inscription.errors }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ form.frais_scolarite }}
+                                {% if form.frais_scolarite.errors %}
+                                    <div class="text-danger small">{{ form.frais_scolarite.errors }}</div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                Aucune classe configurée pour le moment.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end mt-3">
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Enregistrer les frais
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
