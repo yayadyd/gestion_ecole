@@ -1597,3 +1597,167 @@ def generer_planche_cartes_lycee_pdf(inscriptions, ecole, couleur_hex='#6f42c1',
     c.save()
     buffer.seek(0)
     return buffer
+
+# ecole/lycee_services.py
+def generer_liste_eleves_lycee_pdf(eleves, ecole, filtres=None):
+    """
+    Génère le PDF de la liste filtrée des élèves du lycée (mode portrait A4).
+    Colonnes : Matricule, Prénoms, Noms, Classe, Série.
+    """
+    import io
+    from datetime import date
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import cm
+    from reportlab.lib import colors
+    from reportlab.platypus import (
+        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    )
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from .utils.pdf_generator import _construire_entete_3_zones
+
+    if filtres is None:
+        filtres = {}
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4,
+        rightMargin=1.5 * cm, leftMargin=1.5 * cm,
+        topMargin=1.5 * cm, bottomMargin=1.5 * cm,
+    )
+
+    styles = getSampleStyleSheet()
+    style_titre = ParagraphStyle(
+        'Titre', parent=styles['Title'],
+        fontSize=16, alignment=TA_CENTER,
+        textColor=colors.HexColor('#2c3e50'),
+        spaceAfter=6, spaceBefore=15,
+    )
+    style_sous_titre = ParagraphStyle(
+        'SousTitre', parent=styles['Normal'],
+        fontSize=11, alignment=TA_CENTER,
+        textColor=colors.HexColor('#7f8c8d'),
+        spaceAfter=15,
+    )
+    style_cellule = ParagraphStyle(
+        'Cellule', parent=styles['Normal'],
+        fontSize=9, alignment=TA_CENTER, leading=11,
+    )
+    style_cellule_gauche = ParagraphStyle(
+        'CelluleGauche', parent=styles['Normal'],
+        fontSize=9, alignment=TA_LEFT, leading=11,
+    )
+    style_pied = ParagraphStyle(
+        'Pied', parent=styles['Normal'],
+        fontSize=8, alignment=TA_CENTER, textColor=colors.grey,
+    )
+
+    # En-tête 3 zones (logo école)
+    story = []
+    story.append(_construire_entete_3_zones(ecole, styles))
+    story.append(Spacer(1, 15))
+
+    story.append(Paragraph("LISTE DES ÉLÈVES — LYCÉE", style_titre))
+
+    # Sous-titre avec les filtres
+    sous_titre_parts = []
+    if filtres.get('classe_nom'):
+        sous_titre_parts.append(f"Classe : <b>{filtres['classe_nom']}</b>")
+    if filtres.get('niveau_filtre'):
+        niveau_label = {'10': '10ème Année', '11': '11ème Année', '12': 'Terminale'}.get(
+            filtres['niveau_filtre'], filtres['niveau_filtre']
+        )
+        sous_titre_parts.append(f"Niveau : <b>{niveau_label}</b>")
+    if filtres.get('annee_nom'):
+        sous_titre_parts.append(f"Année scolaire : <b>{filtres['annee_nom']}</b>")
+    if filtres.get('search'):
+        sous_titre_parts.append(f"Recherche : <b>{filtres['search']}</b>")
+
+    if sous_titre_parts:
+        story.append(Paragraph(" — ".join(sous_titre_parts), style_sous_titre))
+    else:
+        story.append(Paragraph(
+            f"Année scolaire : <b>{filtres.get('annee_nom', 'Toutes')}</b>",
+            style_sous_titre
+        ))
+
+    # ============================================================
+    # TABLEAU : 5 colonnes (Matricule, Prénoms, Noms, Classe, Série)
+    # ============================================================
+    header = ['Matricule', 'Prénoms', 'Noms', 'Classe']
+    data = [header]
+
+    for eleve in eleves:
+        # Récupérer l'inscription la plus récente (pour la classe et la série)
+        inscription = eleve.inscriptionlycee_set.order_by(
+            '-annee_scolaire__anneeScolaire'
+        ).first()
+
+        classe_nom = inscription.classe.nom if inscription else '—'
+        # Série : si la classe n'en a pas (10ème CG), afficher '—'
+        if inscription and inscription.classe.serie:
+            serie = inscription.classe.get_serie_display()
+        else:
+            serie = '—'
+
+        data.append([
+            Paragraph(eleve.matricule or '-', style_cellule),
+            Paragraph(eleve.prenom or '-', style_cellule_gauche),
+            Paragraph(eleve.nom or '-', style_cellule_gauche),
+            Paragraph(classe_nom, style_cellule),
+        ])
+
+    if len(data) == 1:
+        data.append([
+            Paragraph('-', style_cellule),
+            Paragraph('Aucun élève trouvé', style_cellule_gauche),
+            Paragraph('-', style_cellule_gauche),
+            Paragraph('-', style_cellule),
+        ])
+
+    # Largeurs adaptées au portrait A4
+    largeur_totale = doc.width
+    col_widths = [
+        6 * cm,   # Matricule
+        5 * cm,   # Prénoms
+        4.5 * cm,   # Noms
+        3.5 * cm,   # Classe
+    ]
+    # Ajuster la dernière pour remplir exactement la largeur
+    col_widths[-1] = largeur_totale - sum(col_widths[:-1])
+
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#34495e')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+        ('VALIGN', (0, 0), (-1, 0), 'MIDDLE'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+        ('TOPPADDING', (0, 0), (-1, 0), 8),
+        ('VALIGN', (0, 1), (-1, -1), 'MIDDLE'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+        ('TOPPADDING', (0, 1), (-1, -1), 5),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+    ]))
+    story.append(table)
+
+    story.append(Spacer(1, 15))
+    total = len(eleves)
+    story.append(Paragraph(
+        f"<b>Total : {total} élève{'s' if total > 1 else ''}</b>",
+        style_cellule
+    ))
+
+    story.append(Spacer(1, 10))
+    story.append(Paragraph(
+        f"Document généré le {date.today().strftime('%d/%m/%Y')}",
+        style_pied
+    ))
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer

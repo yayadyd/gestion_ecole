@@ -407,8 +407,6 @@ class Matiere(models.Model):
 
 
 # 5. ########## RECALCUL PARCOURS (REDOUBLEMENTS UNIQUEMENT) ##########
-
-
 def recalculer_parcours_eleve(eleve):
     """
     Recalcule UNIQUEMENT les redoublements à partir des inscriptions.
@@ -429,7 +427,6 @@ def recalculer_parcours_eleve(eleve):
     eleve.redoublement_1 = redoublements[0] if len(redoublements) > 0 else None
     eleve.redoublement_2 = redoublements[1] if len(redoublements) > 1 else None
     eleve.redoublement_3 = redoublements[2] if len(redoublements) > 2 else None
-
 
 # 6. ########## LES EVALUATIONS ##########
 
@@ -454,30 +451,7 @@ class Evaluation(models.Model):
     def __str__(self):
         return self.nomEvaluation
 
-
-
-def recalculer_scolarite_eleve(eleve):
-    """
-    Recalcule scolarite_1er_cycle et scolarite_2e_cycle en comptant 
-    les inscriptions réelles de l'élève.
-    """
-    from django.db.models import Count
-
-    compteurs = (
-        Inscription.objects
-        .filter(eleve=eleve)
-        .values('classe__cycle')
-        .annotate(nb=Count('idInscription'))
-    )
-    par_cycle = {item['classe__cycle']: item['nb'] for item in compteurs}
-
-    eleve.scolarite_1er_cycle = par_cycle.get('1er', 0)
-    eleve.scolarite_2e_cycle = par_cycle.get('2e', 0)
-    eleve.scolarite_totale = eleve.scolarite_1er_cycle + eleve.scolarite_2e_cycle
-
 # 7. ########## INSCRIPTION ##########
-
-
 class Inscription(models.Model):
     idInscription = models.AutoField(primary_key=True)
     eleve = models.ForeignKey(Eleve, on_delete=models.CASCADE, verbose_name="Élève")
@@ -503,36 +477,38 @@ class Inscription(models.Model):
         unique_together = ('eleve', 'anneeScolaire')
         ordering = ['-anneeScolaire__anneeScolaire', 'eleve__nomEleve']
 
+    # ... reste inchangé ...
+
     def __str__(self):
         return f"{self.eleve} - {self.classe} ({self.anneeScolaire})"
 
     def save(self, *args, **kwargs):
-        ancien_eleve = None
-        if self.pk:
-            ancien_eleve = Inscription.objects.filter(pk=self.pk).values_list('eleve_id', flat=True).first()
-
+        is_new = self.pk is None
         super().save(*args, **kwargs)
 
-        # Recalculer pour l'élève actuel
-        recalculer_scolarite_eleve(self.eleve)
-        recalculer_parcours_eleve(self.eleve) # pour les redoublements
-        self.eleve.save(update_fields=['scolarite_1er_cycle', 'scolarite_2e_cycle', 'scolarite_totale', 'redoublement_1', 'redoublement_2', 'redoublement_3'])
+        if is_new:
+            eleve = self.eleve
 
-        # Si l'élève a changé, recalculer pour l'ancien élève aussi
-        if ancien_eleve and ancien_eleve != self.eleve_id:
-            ancien = Eleve.objects.filter(pk=ancien_eleve).first()
-            if ancien:
-                recalculer_scolarite_eleve(ancien)
-                recalculer_parcours_eleve(ancien)
-                ancien.save(update_fields=['scolarite_1er_cycle', 'scolarite_2e_cycle', 'scolarite_totale', 'redoublement_1', 'redoublement_2', 'redoublement_3'])
+            if self.classe.cycle == '1er':
+                eleve.scolarite_1er_cycle = (eleve.scolarite_1er_cycle or 0) + 1
+            else:
+                eleve.scolarite_2e_cycle = (eleve.scolarite_2e_cycle or 0) + 1
+
+            recalculer_parcours_eleve(eleve)
+            eleve.save()
 
     def delete(self, *args, **kwargs):
         eleve = self.eleve
+        cycle_classe = self.classe.cycle
         super().delete(*args, **kwargs)
-        
-        recalculer_scolarite_eleve(eleve)
+
+        if cycle_classe == '1er':
+            eleve.scolarite_1er_cycle = max(0, (eleve.scolarite_1er_cycle or 0) - 1)
+        else:
+            eleve.scolarite_2e_cycle = max(0, (eleve.scolarite_2e_cycle or 0) - 1)
+
         recalculer_parcours_eleve(eleve)
-        eleve.save(update_fields=['scolarite_1er_cycle', 'scolarite_2e_cycle', 'scolarite_totale', 'redoublement_1', 'redoublement_2', 'redoublement_3'])
+        eleve.save()
 
     # =================================================================
     # ✅ CORRIGÉ : frais_unique_deja_paye
@@ -547,8 +523,8 @@ class Inscription(models.Model):
         au lieu de classe.mode_paiement (champ inexistant).
         """
         # Import tardif pour éviter les imports circulaires
-        from ..services.paiements import _scolarite_unique_deja_payee
-        from ..models import EcoleInfo
+        from .services.paiements import _scolarite_unique_deja_payee
+        from .models import EcoleInfo
 
         ecole = EcoleInfo.get_solo()
 

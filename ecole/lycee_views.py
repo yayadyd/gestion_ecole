@@ -643,8 +643,62 @@ def eleve_list_filtered_lycee(request):
 @login_required
 def eleve_list_filtered_pdf_lycee(request):
     """Export PDF de la liste filtrée des élèves du lycée."""
-    messages.info(request, "Export PDF à venir.")
-    return redirect('lycee:eleve_list_filtered')
+    from .lycee_services import generer_liste_eleves_lycee_pdf
+
+    classe_id = request.GET.get('classe')
+    annee_id = request.GET.get('annee')
+    niveau = request.GET.get('niveau', '')
+    search = request.GET.get('search', '').strip()
+
+    eleves = EleveLycee.objects.all().order_by('nom', 'prenom')
+
+    if classe_id:
+        eleves = eleves.filter(inscriptionlycee__classe_id=classe_id)
+    if annee_id:
+        eleves = eleves.filter(inscriptionlycee__annee_scolaire_id=annee_id)
+    if niveau:
+        eleves = eleves.filter(inscriptionlycee__classe__niveau=niveau)
+    if search:
+        eleves = eleves.filter(
+            Q(nom__icontains=search) |
+            Q(prenom__icontains=search) |
+            Q(matricule__icontains=search)
+        )
+    eleves = eleves.distinct()
+
+    classe_nom = None
+    annee_nom = None
+    if classe_id:
+        classe = ClasseLycee.objects.filter(id_classe=classe_id).first()
+        classe_nom = classe.nom if classe else None
+    if annee_id:
+        annee = AnneeScolaire.objects.filter(idAnneeScolaire=annee_id).first()
+        annee_nom = annee.anneeScolaire if annee else None
+
+    ecole = EcoleInfo.get_solo()
+
+    filtres = {
+        'classe_nom': classe_nom,
+        'annee_nom': annee_nom,
+        'niveau_filtre': niveau,
+        'search': search,
+    }
+
+    buffer = generer_liste_eleves_lycee_pdf(list(eleves), ecole, filtres)
+
+    # Nom de fichier
+    filename_parts = ['liste_eleves_lycee']
+    if classe_nom:
+        filename_parts.append(classe_nom.replace(' ', '_'))
+    if niveau:
+        filename_parts.append(f"niveau_{niveau}")
+    if annee_nom:
+        filename_parts.append(annee_nom)
+    filename = '_'.join(filename_parts) + '.pdf'
+
+    response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
 
 
 # =====================================================================
