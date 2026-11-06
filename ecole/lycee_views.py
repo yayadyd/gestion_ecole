@@ -1221,17 +1221,29 @@ def bulletins_classe_pdf(request, classe_id, trimestre, annee_id):
 
 @login_required
 def api_recherche_eleves_lycee(request):
-    """API : recherche d'élèves du lycée par nom/prénom/matricule."""
+    """API : recherche d'élèves du lycée par nom/prénom/matricule, filtrée par annee_scolaire et classe."""
     search = request.GET.get('q', '').strip()
+    annee_id = request.GET.get('annee', '')
+    classe_id = request.GET.get('classe', '')
 
     if not search or len(search) < 2:
         return JsonResponse({'success': True, 'eleves': []})
 
-    eleves = EleveLycee.objects.filter(
+    eleves_qs = EleveLycee.objects.filter(
         Q(matricule__icontains=search) |
         Q(nom__icontains=search) |
         Q(prenom__icontains=search)
-    ).order_by('nom', 'prenom')[:50]
+    )
+
+    # ✅ Filtrer par année scolaire si fournie (inclure uniquement les élèves avec une inscription pour cette année)
+    if annee_id:
+        eleves_qs = eleves_qs.filter(inscriptionlycee__annee_scolaire_id=annee_id)
+    
+    # ✅ Filtrer par classe si fournie (inclure uniquement les élèves inscrits dans cette classe pour l'année)
+    if classe_id:
+        eleves_qs = eleves_qs.filter(inscriptionlycee__classe_id=classe_id)
+
+    eleves = eleves_qs.distinct().order_by('nom', 'prenom')[:50]
 
     data = [{
         'id': e.id_eleve,
@@ -1291,9 +1303,9 @@ def api_recherche_inscriptions_lycee(request):
 @login_required
 def api_classes_par_annee_lycee(request, annee_id):
     """
-    API : retourne les classes du lycée qui ont au moins une inscription
-    pour l'année scolaire donnée. Utilisée par le formulaire d'inscription
-    pour filtrer automatiquement la liste des classes selon l'année.
+    API : retourne TOUTES les classes du lycée pour l'année scolaire donnée.
+    Utilisée par le formulaire d'inscription pour filtrer automatiquement
+    la liste des classes selon l'année.
     """
     try:
         annee = AnneeScolaire.objects.get(idAnneeScolaire=annee_id)
@@ -1302,8 +1314,7 @@ def api_classes_par_annee_lycee(request, annee_id):
 
     classes = (
         ClasseLycee.objects
-        .filter(inscriptionlycee__annee_scolaire=annee)
-        .distinct()
+        .filter(annee_scolaire=annee)
         .order_by('niveau', 'serie', 'nom')
     )
     data = []

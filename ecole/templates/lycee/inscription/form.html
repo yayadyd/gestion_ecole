@@ -164,8 +164,18 @@ document.addEventListener('DOMContentLoaded', function () {
     const resultatsRecherche = document.getElementById('resultatsRecherche');
     const btnRetirerEleve = document.getElementById('btnRetirerEleve');
 
-    const urlApiRecherche = "{% url 'lycee:api_recherche_eleves' %}";
+    const urlApiRechercheBase = "{% url 'lycee:api_recherche_eleves' %}";
+    const champAnnee = document.getElementById('{{ form.annee_scolaire.id_for_label }}');
+    const champClasse = document.getElementById('{{ form.classe.id_for_label }}');
     const urlApiClasses = "{% url 'lycee:api_classes_par_annee' 0 %}".replace('0', '%7B0%7D');
+
+    // ✅ Construire l'URL de recherche d'élèves avec les filtres année et classe
+    function buildRechercheUrl() {
+        let params = [];
+        if (champAnnee && champAnnee.value) params.push(`annee=${champAnnee.value}`);
+        if (champClasse && champClasse.value) params.push(`classe=${champClasse.value}`);
+        return urlApiRechercheBase + (params.length ? '?' + params.join('&') : '');
+    }
 
     // ✅ Filtre automatique des classes selon l'année scolaire sélectionnée.
     // Les classes affichées sont celles qui ont au moins une inscription
@@ -365,7 +375,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             timer = setTimeout(() => {
-                fetch(`${urlApiRecherche}?q=${encodeURIComponent(q)}`)
+                fetch(buildRechercheUrl())
                     .then(r => r.json())
                     .then(data => {
                         if (data.success) {
